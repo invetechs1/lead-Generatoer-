@@ -126,8 +126,9 @@
     const pv = $("#prev"), nx = $("#next"); if (pv) pv.onclick = () => { f.page--; renderLeads(); }; if (nx) nx.onclick = () => { f.page++; renderLeads(); };
     $("#list").querySelectorAll(".lead").forEach((el) => el.onclick = () => openLead(+el.dataset.id));
   }
+  const demoFor = (l) => { const base = (S.settings.demo_url || "").trim(); if (!base) return ""; const q = new URLSearchParams(); if (l.name) q.set("n", l.name); if (l.city) q.set("c", l.city); if (l.phone) q.set("p", l.phone); if (l.sector) q.set("s", l.sector); return base + (base.includes("?") ? "&" : "?") + q.toString(); };
   const leadRow = (today) => (l) => `<div class="lead ${l.priority === 1 ? "pri1" : ""}" data-id="${l.id}">
-      <div><div class="n">${esc(l.name)}</div><div class="m">${esc(l.city)}${l.sector ? " · " + esc(l.sector) : ""}${l.rating ? " · ★" + l.rating : ""}</div></div>
+      <div><div class="n">${esc(l.name)}</div><div class="m">${esc(l.city)}${l.sector ? " · " + esc(l.sector) : ""}${l.rating ? " · ★" + l.rating : ""}${l.website ? (l.site_score != null ? ` · <span class="tag ${l.site_score < 60 ? "lost" : "won"}">موقع ${l.site_score}</span>` : " · 🌐 لديه موقع") : " · بدون موقع"}</div></div>
       <div style="text-align:left"><span class="tag ${l.status}">${STATUS_AR[l.status]}</span>${l.next_follow_up && l.next_follow_up <= today && !["won", "lost", "do_not_contact"].includes(l.status) ? ' <span class="tag due">متابعة</span>' : ""}<div class="p">+${l.phone}</div></div></div>`;
 
   function drawer(html) {
@@ -167,6 +168,8 @@
         <a class="btn btn-ghost btn-sm" href="tel:+${lead.phone}">📞 اتصال</a>
         ${lead.instagram ? `<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${esc(/^https?:/.test(lead.instagram) ? lead.instagram : "https://instagram.com/" + lead.instagram.replace("@", ""))}">إنستقرام</a>` : ""}
         ${lead.maps_url ? `<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${esc(lead.maps_url)}">الخريطة</a>` : ""}
+        ${lead.website ? `<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${esc(/^https?:/.test(lead.website) ? lead.website : "https://" + lead.website)}">الموقع${lead.site_score != null ? " " + lead.site_score + "/100" : ""}</a><button class="btn btn-ghost btn-sm" id="aud">🔍 فحص الموقع</button>` : ""}
+        <a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${esc(demoFor(lead))}">👁 النموذج باسمهم</a>
         <button class="btn btn-ghost btn-sm" id="ed">تعديل</button>
         ${lead.status !== "won" ? `<button class="btn btn-ghost btn-sm" id="conv">✔ تحويل لعميل</button>` : ""}
         ${S.user.role === "admin" ? `<button class="btn btn-danger btn-sm" id="del">حذف</button>` : ""}
@@ -184,7 +187,8 @@
         <p class="hint" style="margin-top:6px">${S.settings.whatsapp_api ? "الإرسال عبر WhatsApp Cloud API مفعّل." : "يفتح واتساب برسالة جاهزة — اضغط إرسال داخل واتساب."}</p></div>
       <div class="card"><h2>ملاحظة / مكالمة</h2><div class="row row-2"><select id="ak"><option value="note">ملاحظة</option><option value="call">مكالمة</option></select><input id="ac" placeholder="ماذا حدث؟"></div><div class="actions"><button class="btn btn-ghost btn-sm" id="adda">إضافة</button></div></div>
       <div class="card"><h2>السجل</h2>${acts.length ? acts.map((a) => `<div class="act"><small>${new Date(a.created_at + "Z").toLocaleString("ar-SA")} · ${{ whatsapp: "واتساب", call: "مكالمة", note: "ملاحظة", status: "تغيير حالة", email: "بريد" }[a.kind] || a.kind}${a.channel ? " (" + a.channel + ")" : ""}</small><pre>${esc(a.content)}</pre></div>`).join("") : `<div class="hint">لا يوجد نشاط بعد</div>`}</div>`);
-    const render = (body) => body.replaceAll("{name}", lead.name).replaceAll("{city}", lead.city).replaceAll("{sector}", lead.sector).replaceAll("{activity}", lead.sector).replaceAll("{demo}", S.settings.demo_url || "[الرابط]").replaceAll("{sender}", S.settings.sender_name || "");
+    const issues = (lead.site_issues || "").split("\n").filter(Boolean).map((x) => "• " + x).join("\n");
+    const render = (body) => body.replaceAll("{name}", lead.name).replaceAll("{city}", lead.city).replaceAll("{sector}", lead.sector).replaceAll("{activity}", lead.sector).replaceAll("{website}", lead.website || "").replaceAll("{issues}", issues).replaceAll("{demo}", demoFor(lead) || "[الرابط]").replaceAll("{sender}", S.settings.sender_name || "");
     const pv = () => { const c = $("#custom", d.el).value.trim(); const t = tpls.find((x) => x.id === +$("#tp", d.el).value); $("#pv", d.el).textContent = render(c || (t ? t.body : "")); };
     pv(); $("#tp", d.el).onchange = pv; $("#custom", d.el).oninput = pv;
     $("#send", d.el).onclick = async () => {
@@ -200,6 +204,7 @@
     $("#svst", d.el).onclick = async () => { try { await api(`/api/leads/${id}`, { method: "PATCH", body: { status: $("#st", d.el).value, next_follow_up: $("#fu", d.el).value || null } }); toast("تم الحفظ"); d.close(); renderLeads(); } catch (e) { toast(e.message, true); } };
     $("#adda", d.el).onclick = async () => { try { await api(`/api/leads/${id}/activities`, { method: "POST", body: { kind: $("#ak", d.el).value, content: $("#ac", d.el).value } }); d.close(); openLead(id); } catch (e) { toast(e.message, true); } };
     $("#ed", d.el).onclick = () => { d.close(); leadForm(lead); };
+    const aud = $("#aud", d.el); if (aud) aud.onclick = async () => { aud.disabled = true; aud.textContent = "جارٍ الفحص…"; try { const r = await api(`/api/leads/${id}/audit`, { method: "POST" }); toast(`نتيجة الموقع ${r.score}/100 — ${r.issues.length} ملاحظة`); d.close(); openLead(id); } catch (e) { toast(e.message, true); aud.disabled = false; aud.textContent = "🔍 فحص الموقع"; } };
     const conv = $("#conv", d.el); if (conv) conv.onclick = () => { d.close(); clientForm({ lead_id: lead.id, company: lead.name, phone: lead.phone }); };
     const del = $("#del", d.el); if (del) del.onclick = async () => { if (!confirm("حذف العميل نهائيًا؟")) return; await api(`/api/leads/${id}`, { method: "DELETE" }); d.close(); renderLeads(); };
   }

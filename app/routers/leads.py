@@ -11,8 +11,8 @@ from sqlalchemy.orm import Session
 from ..auth import current_user
 from ..database import get_db
 from ..models import Lead, Activity, Template, User, Setting, LEAD_STATUSES
-from ..schemas import LeadIn, LeadUpdate, LeadOut, LeadPage, ImportResult, SendIn, SendOut, ActivityIn, ActivityOut, normalize_phone
-from ..services import whatsapp
+from ..schemas import LeadIn, LeadUpdate, LeadOut, LeadPage, ImportResult, SendIn, SendOut, ActivityIn, ActivityOut, AuditOut, normalize_phone
+from ..services import whatsapp, site_audit
 from ..config import settings
 
 router = APIRouter(prefix="/api/leads", tags=["leads"])
@@ -27,9 +27,16 @@ def _setting(db: Session, key: str, default: str) -> str:
 def list_leads(
     db: Session = Depends(get_db), _: User = Depends(current_user),
     q: Optional[str] = None, status: Optional[str] = None, city: Optional[str] = None, sector: Optional[str] = None,
-    due: Optional[bool] = None, page: int = Query(1, ge=1), size: int = Query(50, ge=1, le=500),
+    due: Optional[bool] = None, has_website: Optional[bool] = None, max_score: Optional[int] = Query(None, ge=0, le=100),
+    page: int = Query(1, ge=1), size: int = Query(50, ge=1, le=500),
 ):
     qry = db.query(Lead)
+    if has_website is True:
+        qry = qry.filter(Lead.website != "")
+    elif has_website is False:
+        qry = qry.filter(Lead.website == "")
+    if max_score is not None:
+        qry = qry.filter(Lead.site_score <= max_score)
     if q:
         like = f"%{q}%"
         qry = qry.filter(or_(Lead.name.ilike(like), Lead.phone.ilike(like), Lead.notes.ilike(like)))
@@ -85,8 +92,13 @@ async def import_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
         if phone in existing:
             res.skipped_duplicates += 1
             continue
+        score = row.get("site_score", "")
+        rating = row.get("rating", "")
+        reviews = row.get("reviews", "")
         db.add(Lead(name=name, phone=phone, city=row.get("city", ""), sector=row.get("sector", ""), instagram=row.get("instagram", ""),
-                    website=row.get("website", ""), maps_url=row.get("maps_url", ""), notes=row.get("notes", ""), source="csv", owner_id=user.id))
+                    website=row.get("website", ""), maps_url=row.get("maps_url", ""), notes=row.get("notes", ""), source="csv", owner_id=user.id,
+                    site_score=int(float(score)) if score.replace(".", "", 1).isdigit() else None, site_issues=row.get("site_issues", ""),
+                    rating=float(rating) if rating.replace(".", "", 1).isdigit() else None, reviews=int(float(reviews)) if reviews.replace(".", "", 1).isdigit() else None))
         existing.add(phone); res.added += 1
     db.commit()
     return res
@@ -96,9 +108,9 @@ async def import_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
 def export_csv(db: Session = Depends(get_db), _: User = Depends(current_user)):
     buf = io.StringIO(); buf.write("\ufeff")
     w = csv.writer(buf)
-    w.writerow(["id", "name", "phone", "city", "sector", "status", "priority", "instagram", "website", "maps_url", "next_follow_up", "last_contacted_at", "notes"])
+    w.writerow(["id", "name", "phone", "city", "sector", "status", "priority", "instagram", "website", "site_score", "site_issues", "maps_url", "next_follow_up", "last_contacted_at", "notes"])
     for l in db.query(Lead).order_by(Lead.id):
-        w.writerow([l.id, l.name, l.phone, l.city, l.sector, l.status, l.priority, l.instagram, l.website, l.maps_url, l.next_follow_up or "", l.last_contacted_at or "", l.notes])
+        w.writerow([l.id, l.name, l.phone, l.city, l.sector, l.status, l.priority, l.instagram, l.website, l.site_score if l.site_score is not None else "", l.site_issues, l.maps_url, l.next_follow_up or "", l.last_contacted_at or "", l.notes])
     buf.seek(0)
     return StreamingResponse(iter([buf.getvalue()]), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=leads.csv"})
 
@@ -190,3 +202,19 @@ async def send_whatsapp(lead_id: int, data: SendIn, db: Session = Depends(get_db
         lead.next_follow_up = date.today() + timedelta(days=data.follow_up_in_days)
     db.commit()
     return SendOut(lead_id=lead.id, phone=lead.phone, message=message, wa_link=whatsapp.wa_link(lead.phone, message), channel=channel, sent_today=sent_today + 1, daily_cap=cap)
+
+
+@router.post("/{lead_id}/audit", response_model=AuditOut)
+async def audit_website(lead_id: int, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    """Score the lead's existing website (0-100) and store the Arabic issue list for the {issues} placeholder."""
+    lead = db.get(Lead, lead_id)
+    if not lead:
+        raise HTTPException(404, "Lead not found")
+    if not lead.website:
+        raise HTTPException(400, "Lead has no website to audit (use the no-website templates)")
+    a = await site_audit.audit(lead.website)
+    lead.site_score = a.score
+    lead.site_issues = "\n".join(a.issues)
+    db.add(Activity(lead_id=lead.id, user_id=user.id, kind="note", content=f"فحص الموقع: {a.score}/100" + ("\n" + lead.site_issues if a.issues else "")))
+    db.commit()
+    return AuditOut(lead_id=lead.id, **a.dict())

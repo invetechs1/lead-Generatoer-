@@ -107,6 +107,8 @@ class LeadOut(BaseModel):
     rating: Optional[float]
     reviews: Optional[int]
     source: str
+    site_score: Optional[int] = None
+    site_issues: str = ""
     status: str
     priority: int
     notes: str
@@ -151,6 +153,22 @@ class SendIn(BaseModel):
     body: Optional[str] = Field(default=None, max_length=4000)  # custom text overrides template
     mark_contacted: bool = True
     follow_up_in_days: int = Field(default=2, ge=0, le=60)
+
+
+class AuditOut(BaseModel):
+    lead_id: int
+    url: str
+    final_url: str
+    ok: bool
+    status: int
+    https: bool
+    ttfb_ms: int
+    mobile_ready: bool
+    title: str
+    has_arabic: bool
+    has_whatsapp: bool
+    score: int
+    issues: list[str]
 
 
 class SendOut(BaseModel):

@@ -51,6 +51,15 @@ def health():
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 
+@app.get("/demo/{kind}", include_in_schema=False)
+def demo(kind: str):
+    """Sample websites shared with leads. Personalised via ?n=<name>&c=<city>&p=<phone>&s=<sector> (see services.whatsapp.personal_demo)."""
+    f = STATIC / "demo" / f"{kind}.html"
+    if not f.is_file():
+        f = STATIC / "demo" / "business.html"
+    return FileResponse(f, headers={"Cache-Control": "public, max-age=300", "X-Frame-Options": "SAMEORIGIN"})
+
+
 @app.get("/{path:path}", include_in_schema=False)
 def spa(path: str):
     return FileResponse(STATIC / "index.html")

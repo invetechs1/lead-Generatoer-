@@ -46,6 +46,44 @@ TEMPLATES = [
 
 موقع احترافي كامل بـ 1,000 ريال/شهر شامل النطاق والاستضافة والتحديث، بدون دفعة مقدمة.
 تحبون أرسل لكم نسخة تجريبية باسم الشركة؟"""),
+    ("رسالة أولى — موقعهم ضعيف", "first", "", """السلام عليكم، معك {sender}.
+
+{name} — دخلت على موقعكم {website} وحبيت أنبّهكم بكل صراحة:
+{issues}
+
+يعني العميل اللي يوصل لكم من قوقل غالبًا يطلع بدون ما يتواصل، ويروح للمنافس.
+
+سويت لكم نموذج لموقع جديد بنفس نشاطكم عشان تشوفون الفرق:
+{demo}
+
+الخدمة: موقع احترافي كامل (تصميم جديد + استضافة + نطاق + صيانة وتحديث شهري) بـ 1,000 ريال شهريًا، بدون أي مبلغ مقدّم، وننقل محتواكم الحالي مجانًا.
+
+تحبون أجهّز لكم نسخة باسمكم؟ تأخذ يومين فقط.
+(إذا ما تبون رسائل مني، اكتبوا "إيقاف" وما راح أزعجكم)"""),
+    ("First message — English (no website)", "first", "", """Hello, this is {sender}.
+
+I came across {name} on Instagram — great work 👌
+One thing I noticed: there is no website. When a customer searches Google for "{activity} in {city}", they can't find you and go to the competitor who has one.
+
+I built a quick sample so you can see the idea:
+{demo}
+
+The service: a complete professional website (design + hosting + domain + monthly updates) for SAR 1,000/month, no upfront payment.
+
+Would you like a version with your name and logo? It takes 2 days.
+(Reply STOP if you'd rather not hear from me.)"""),
+    ("First message — English (weak website)", "first", "", """Hello, this is {sender}.
+
+{name} — I visited your website {website} and, honestly, a few things are costing you customers:
+{issues}
+
+Here is a sample of what a new site for your business could look like:
+{demo}
+
+Complete redesign + hosting + domain + monthly maintenance for SAR 1,000/month, no upfront payment, and we migrate your current content for free.
+
+Shall I prepare a version with your name? (Reply STOP to opt out.)"""),
+    ("رد: إيقاف / لا أريد", "objection", "", """تمام، شكرًا لوقتكم 🙏 ما راح أرسل لكم مرة ثانية. بالتوفيق لـ {name}."""),
     ("متابعة (بعد 2–3 أيام)", "follow_up", "", """مرحبًا، {sender} مرة ثانية 🙏
 أرسلت لكم قبل يومين نموذج الموقع الخاص بـ {name}:
 {demo}

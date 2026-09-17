@@ -36,6 +36,8 @@ class Lead(Base):
     rating: Mapped[float | None] = mapped_column(Numeric(3, 2), nullable=True)
     reviews: Mapped[int | None] = mapped_column(Integer, nullable=True)
     source: Mapped[str] = mapped_column(String(40), default="manual")  # manual | csv | places
+    site_score: Mapped[int | None] = mapped_column(Integer, nullable=True)  # 0-100 from services.site_audit (None = not audited)
+    site_issues: Mapped[str] = mapped_column(Text, default="")  # newline-separated Arabic issues for the pitch
     status: Mapped[str] = mapped_column(String(30), default="new", index=True)
     priority: Mapped[int] = mapped_column(Integer, default=2)  # 1 high, 2 normal, 3 low
     notes: Mapped[str] = mapped_column(Text, default="")

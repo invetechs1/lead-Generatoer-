@@ -8,11 +8,25 @@ Full-stack system for the "website-as-a-subscription" campaign (SAR 1,000/month)
 |---|---|
 | Leads | CRUD, CSV import (Arabic/English headers), export, dedupe by phone (auto-normalized to 966…), filters, priority, follow-up dates, owner |
 | Outreach | Template engine `{name} {city} {activity} {demo} {sender}`, one-tap WhatsApp (wa.me) with automatic activity log, status → contacted, follow-up scheduling, **daily send cap** (anti-ban), do-not-contact guard, optional WhatsApp Cloud API |
-| Discover | Google Places (New) Text Search → businesses **without a website** with a phone number → save as leads (works once `GOOGLE_PLACES_API_KEY` is set) |
+| Discover | Google Places (New) Text Search → businesses **without a website** with a phone number → save as leads (works once `GOOGLE_PLACES_API_KEY` is set). **Bulk:** `scripts/discover_bulk.py` runs the whole city × sector matrix in `data/targets.json` (district-level, budgeted against the 5,000 free calls/month) and writes import-ready CSVs |
+| Website audit | `scripts/audit_sites.py` / **🔍 فحص الموقع** score an existing site 0–100 (HTTPS, mobile, speed, Arabic, parked/"coming soon", WhatsApp button) and fill the `{issues}` placeholder for the "your website is weak" pitch; filter leads by `has_website` / `max_score` |
+| Sample sites | `/demo/restaurant` and `/demo/business` — professional RTL sample websites, **personalised per lead** (`?n=name&c=city&p=phone&s=sector`); `{demo}` in templates becomes the lead's own link automatically |
 | Pipeline | new → contacted → replied → demo_sent → negotiating → won / lost / do_not_contact, full activity timeline (WhatsApp, calls, notes, status changes) |
 | Clients & Billing | Convert lead → client, monthly invoices (15% VAT), idempotent `run-billing`, overdue detection, mark paid, MRR/ARR |
 | Dashboard | MRR, active subscriptions, sends today vs cap, due follow-ups, reply & win rate, 14-day send chart, funnel |
 | Admin | JWT auth (bcrypt), roles admin/agent, user management, settings (sender, demo URL, cap, price), password change |
+
+## Campaign docs
+- `docs/MARKET_RESEARCH.md` — target sectors/cities, pricing position, unit economics, **compliance (CST anti-spam, PDPL, WhatsApp policy)**.
+- `docs/PLAYBOOK.md` — day-0 setup, list building commands, daily routine, closing script, 48h delivery checklist.
+
+## Build the lead list
+```bash
+export GOOGLE_PLACES_API_KEY=...            # Places API (New), free tier: 5,000 Text Search calls/month
+python scripts/discover_bulk.py --cities الرياض جدة --tiers 1 --districts --max-calls 600 --mobile-only
+python scripts/audit_sites.py data/leads_with_website_<date>.csv --max-score 60
+# import both CSVs from Leads → استيراد CSV (or add --save to insert directly)
+```
 
 ## Security
 - bcrypt password hashing, HS256 JWT (12h default), login rate-limit (10 tries / 5 min / IP)
@@ -44,7 +58,7 @@ Backups land in `./backups/` daily. Restore: `gunzip -c backups/bassir-YYYY-MM-D
 
 ## Tests
 ```bash
-python -m pytest -q tests     # 11 tests: auth, RBAC, phone normalization, CSV import, send + cap, billing, dashboard
+python -m pytest -q tests     # 17 tests: auth, RBAC, phone normalization, CSV import, send + cap, billing, dashboard, site audit, demo pages
 ```
 
 ## Daily workflow
@@ -56,6 +70,9 @@ python -m pytest -q tests     # 11 tests: auth, RBAC, phone normalization, CSV i
 
 ## CSV format
 `name,phone,city,sector,instagram,website,maps_url,notes` — Arabic headers (الاسم, الجوال, المدينة, النشاط, ملاحظات) also accepted. Phones in any format (05…, +966…, 00966…).
+
+## Template placeholders
+`{name} {city} {activity}/{sector} {website} {issues} {demo} {sender}` — `{issues}` is the bullet list from the site audit, `{demo}` is the personalised sample-site link.
 
 ## Roadmap hooks (already wired, just add keys in .env)
 - `GOOGLE_PLACES_API_KEY` → Discover button turns on.

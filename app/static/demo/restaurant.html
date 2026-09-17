@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>مطعم — نموذج موقع</title>
+<meta name="description" content="نموذج موقع مطعم احترافي: منيو، حجز واتساب، الموقع على الخريطة.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fffaf3;--ink:#1f1a17;--mut:#6b625b;--brand:#b4462e;--brand2:#e08a3a;--card:#fff;--line:#eee2d3;--wa:#25d366}
+*{box-sizing:border-box}body{margin:0;font-family:Tajawal,system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.7}
+a{color:inherit;text-decoration:none}img{max-width:100%}
+.wrap{max-width:1100px;margin:0 auto;padding:0 16px}
+header{position:sticky;top:0;background:rgba(255,250,243,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);z-index:5}
+nav{display:flex;align-items:center;justify-content:space-between;height:64px}
+.logo{font-weight:800;font-size:22px;color:var(--brand)}.logo small{display:block;font-size:11px;color:var(--mut);font-weight:500;letter-spacing:.5px}
+nav ul{display:none;gap:22px;list-style:none;margin:0;padding:0;font-weight:500}@media(min-width:760px){nav ul{display:flex}}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border-radius:999px;font-weight:700;border:0;cursor:pointer;transition:.2s}
+.btn-brand{background:var(--brand);color:#fff}.btn-brand:hover{background:#96381f}.btn-wa{background:var(--wa);color:#fff}.btn-ghost{border:2px solid var(--brand);color:var(--brand)}
+.hero{display:grid;gap:28px;padding:56px 0 40px;align-items:center}@media(min-width:860px){.hero{grid-template-columns:1.1fr .9fr;padding:80px 0 60px}}
+.hero h1{font-size:clamp(34px,6vw,58px);line-height:1.15;margin:0 0 14px;font-weight:800}.hero h1 span{color:var(--brand)}
+.hero p{font-size:18px;color:var(--mut);margin:0 0 26px}
+.hero .cta{display:flex;gap:12px;flex-wrap:wrap}
+.dish{aspect-ratio:1;border-radius:32px;background:radial-gradient(circle at 30% 30%,#ffd9a8,#e08a3a 45%,#b4462e 100%);display:grid;place-items:center;font-size:110px;box-shadow:0 30px 60px -20px rgba(180,70,46,.45)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:28px}.stats div{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;text-align:center}.stats b{display:block;font-size:24px;color:var(--brand)}.stats span{font-size:13px;color:var(--mut)}
+section{padding:48px 0}h2{font-size:32px;margin:0 0 8px;font-weight:800}.sub{color:var(--mut);margin:0 0 28px}
+.menu{display:grid;gap:14px}@media(min-width:700px){.menu{grid-template-columns:1fr 1fr}}
+.item{display:flex;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;align-items:center}
+.item .ic{width:64px;height:64px;border-radius:14px;background:linear-gradient(135deg,#ffe3c2,#f7b77a);display:grid;place-items:center;font-size:30px;flex:none}
+.item h3{margin:0;font-size:17px}.item p{margin:2px 0 0;font-size:13px;color:var(--mut)}.item .pr{margin-inline-start:auto;font-weight:800;color:var(--brand);white-space:nowrap}
+.gal{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}@media(min-width:700px){.gal{grid-template-columns:repeat(4,1fr)}}
+.gal div{aspect-ratio:1;border-radius:18px;display:grid;place-items:center;font-size:52px;background:linear-gradient(160deg,#fff1e0,#f3c89a)}
+.split{display:grid;gap:24px}@media(min-width:860px){.split{grid-template-columns:1fr 1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:24px}
+.hours li{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--line)}.hours{list-style:none;padding:0;margin:0}
+.map{height:240px;border-radius:16px;background:repeating-linear-gradient(45deg,#f5eadb,#f5eadb 10px,#efe0cc 10px,#efe0cc 20px);display:grid;place-items:center;color:var(--mut);font-weight:700}
+.rev{display:grid;gap:14px}@media(min-width:760px){.rev{grid-template-columns:repeat(3,1fr)}}.rev .card{font-size:15px}.rev b{display:block;margin-top:10px;color:var(--brand)}
+footer{border-top:1px solid var(--line);padding:26px 0;color:var(--mut);font-size:14px;text-align:center}
+.fab{position:fixed;bottom:18px;inset-inline-start:18px;z-index:9;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+.ribbon{background:#1f1a17;color:#fff;text-align:center;font-size:13px;padding:8px 12px}.ribbon b{color:#ffd9a8}
+</style>
+</head>
+<body>
+<div class="ribbon">📣 هذا <b>نموذج تجريبي</b> لموقع <b data-name>مطعمكم</b> — الموقع النهائي يكون باسمكم وشعاركم وصوركم خلال 48 ساعة.</div>
+<header><div class="wrap"><nav>
+  <div class="logo"><span data-name>مطعم النموذج</span><small data-city>الرياض</small></div>
+  <ul><li><a href="#menu">المنيو</a></li><li><a href="#gallery">الصور</a></li><li><a href="#about">عنّا</a></li><li><a href="#contact">الموقع والأوقات</a></li></ul>
+  <a class="btn btn-brand" data-wa href="#">احجز طاولة</a>
+</nav></div></header>
+
+<main class="wrap">
+  <section class="hero">
+    <div>
+      <h1>طعم أصيل، <span>في قلب <span data-city>الرياض</span></span></h1>
+      <p><span data-name>مطعم النموذج</span> — أطباق طازجة يوميًا، أجواء عائلية، وتوصيل لكل الأحياء. اطلب أو احجز بضغطة واحدة عبر واتساب.</p>
+      <div class="cta"><a class="btn btn-wa" data-wa href="#">💬 اطلب عبر واتساب</a><a class="btn btn-ghost" href="#menu">شاهد المنيو</a></div>
+      <div class="stats"><div><b>4.8★</b><span>تقييم قوقل</span></div><div><b>+12</b><span>سنة خبرة</span></div><div><b>30 د</b><span>متوسط التوصيل</span></div></div>
+    </div>
+    <div class="dish">🍽️</div>
+  </section>
+
+  <section id="menu"><h2>المنيو</h2><p class="sub">أشهر أطباقنا — القائمة الكاملة بالأسعار تُحدَّث شهريًا مجانًا ضمن الاشتراك.</p>
+    <div class="menu">
+      <div class="item"><div class="ic">🍖</div><div><h3>مندي لحم</h3><p>لحم نعيمي على الفحم مع أرز مندي وسلطة</p></div><div class="pr">65 ر.س</div></div>
+      <div class="item"><div class="ic">🍗</div><div><h3>مظبي دجاج</h3><p>نصف دجاجة مظبي مع أرز بخاري</p></div><div class="pr">38 ر.س</div></div>
+      <div class="item"><div class="ic">🥗</div><div><h3>سلطة فتوش</h3><p>خضار طازجة مع خبز مقرمش ودبس رمان</p></div><div class="pr">18 ر.س</div></div>
+      <div class="item"><div class="ic">🍲</div><div><h3>كبسة عائلية</h3><p>تكفي 4 أشخاص مع الإضافات</p></div><div class="pr">140 ر.س</div></div>
+      <div class="item"><div class="ic">🧁</div><div><h3>كنافة بالقشطة</h3><p>طازجة من الفرن</p></div><div class="pr">22 ر.س</div></div>
+      <div class="item"><div class="ic">☕</div><div><h3>قهوة عربية + تمر</h3><p>دلة كاملة</p></div><div class="pr">25 ر.س</div></div>
+    </div>
+  </section>
+
+  <section id="gallery"><h2>من داخل المطعم</h2><p class="sub">هنا تنعرض صوركم الحقيقية (نصوّرها لكم أو ترسلونها).</p>
+    <div class="gal"><div>🥘</div><div>🍢</div><div>🫖</div><div>🏮</div></div>
+  </section>
+
+  <section id="about" class="split">
+    <div class="card"><h2 style="font-size:24px">قصتنا</h2><p>بدأنا من مطبخ صغير في <span data-city>الرياض</span> وصار <span data-name>مطعم النموذج</span> وجهة العائلات في الحي. نطبخ بمكوّنات طازجة يوميًا ونحافظ على الوصفة الأصلية.</p><p>خدمة حجز للمناسبات والعزائم، وتوصيل عبر تطبيقات التوصيل أو مباشرة من المطعم.</p></div>
+    <div class="rev" style="grid-template-columns:1fr">
+      <div class="card">"أفضل مندي جربته، والخدمة سريعة جدًا." <b>— أبو فهد</b></div>
+      <div class="card">"مكان نظيف ومناسب للعائلات، ورجعنا أكثر من مرة." <b>— أم سارة</b></div>
+    </div>
+  </section>
+
+  <section id="contact" class="split">
+    <div class="card"><h2 style="font-size:24px">الموقع والأوقات</h2>
+      <ul class="hours"><li><span>السبت – الخميس</span><b>12:00 م – 1:00 ص</b></li><li><span>الجمعة</span><b>1:30 م – 1:00 ص</b></li></ul>
+      <p style="margin:16px 0 6px">📍 <span data-city>الرياض</span> — يُربط الموقع الحقيقي بخرائط قوقل مباشرة.</p>
+      <p style="margin:0">📞 <a data-tel href="#" dir="ltr">05xxxxxxxx</a></p>
+      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap"><a class="btn btn-wa" data-wa href="#">💬 واتساب</a><a class="btn btn-ghost" data-tel href="#">📞 اتصال</a></div>
+    </div>
+    <div class="map">🗺️ خريطة قوقل التفاعلية</div>
+  </section>
+</main>
+
+<a class="btn btn-wa fab" data-wa href="#">💬 اطلب الآن</a>
+<footer><div class="wrap">© <span data-year></span> <span data-name>مطعم النموذج</span> · جميع الحقوق محفوظة · تصميم واستضافة <b>Bassir IT</b> — اشتراك 1,000 ر.س/شهر شامل كل شيء</div></footer>
+
+<script>
+(function(){
+  var q=new URLSearchParams(location.search), n=q.get("n"), c=q.get("c"), p=(q.get("p")||"").replace(/\D/g,"");
+  var set=function(sel,val){if(!val)return;document.querySelectorAll(sel).forEach(function(e){e.textContent=val;});};
+  set("[data-name]",n); set("[data-city]",c); set("[data-year]",new Date().getFullYear());
+  if(n){document.title=n+" — "+(c||"")+" | المنيو والحجز";}
+  var wa="https://wa.me/"+(p||"")+"?text="+encodeURIComponent("السلام عليكم، أبغى أحجز طاولة في "+(n||"المطعم"));
+  document.querySelectorAll("[data-wa]").forEach(function(a){a.href=wa;});
+  document.querySelectorAll("[data-tel]").forEach(function(a){a.href="tel:+"+p; if(p&&a.hasAttribute("dir"))a.textContent="+"+p;});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+{
+  "_comment": "City x sector matrix for bulk discovery. Queries are what a Saudi customer types in Google Maps. Sectors ordered by (website-gap x ability to pay SAR 1,000/month).",
+  "cities": [
+    {"name": "الرياض", "en": "Riyadh", "districts": ["حي الملقا", "حي حطين", "حي النرجس", "حي الياسمين", "حي العليا", "حي الروضة", "حي الربيع", "حي قرطبة", "حي الشفا", "حي السويدي", "حي طويق", "حي العزيزية", "حي الحمراء", "حي النسيم", "حي المونسية", "حي إشبيليا"]},
+    {"name": "جدة", "en": "Jeddah", "districts": ["حي الروضة", "حي الصفا", "حي السلامة", "حي الزهراء", "حي النعيم", "حي الحمراء", "حي الشاطئ", "حي المرجان", "حي الفيصلية", "حي البوادي", "حي أبحر الشمالية", "حي الخالدية"]},
+    {"name": "الدمام", "en": "Dammam", "districts": ["حي الشاطئ", "حي الفيصلية", "حي الجلوية", "حي الريان", "حي الفردوس", "حي الروضة"]},
+    {"name": "الخبر", "en": "Khobar", "districts": ["حي العقربية", "حي الراكة", "حي اليرموك", "حي الحزام الذهبي", "حي الثقبة"]},
+    {"name": "مكة المكرمة", "en": "Makkah", "districts": ["حي العزيزية", "حي الشوقية", "حي النسيم", "حي الزاهر"]},
+    {"name": "المدينة المنورة", "en": "Madinah", "districts": ["حي العزيزية", "حي الخالدية", "حي قباء", "حي العيون"]},
+    {"name": "الطائف", "en": "Taif", "districts": ["حي شهار", "حي الشفا", "حي الفيصلية"]},
+    {"name": "بريدة", "en": "Buraidah", "districts": ["حي الصفراء", "حي الإسكان", "حي الأخضر"]},
+    {"name": "تبوك", "en": "Tabuk", "districts": []},
+    {"name": "أبها", "en": "Abha", "districts": []},
+    {"name": "خميس مشيط", "en": "Khamis Mushait", "districts": []},
+    {"name": "حائل", "en": "Hail", "districts": []},
+    {"name": "الجبيل", "en": "Jubail", "districts": []},
+    {"name": "الأحساء", "en": "Al Ahsa", "districts": ["الهفوف", "المبرز"]},
+    {"name": "جازان", "en": "Jazan", "districts": []},
+    {"name": "نجران", "en": "Najran", "districts": []},
+    {"name": "ينبع", "en": "Yanbu", "districts": []},
+    {"name": "القطيف", "en": "Qatif", "districts": []}
+  ],
+  "sectors": [
+    {"sector": "عيادات", "tier": 1, "queries": ["عيادة أسنان", "عيادة جلدية", "مركز طبي", "عيادة تغذية", "عيادة عيون", "مركز علاج طبيعي"], "why": "High ticket, book by DM only, Google is the first stop for patients"},
+    {"sector": "تجميل", "tier": 1, "queries": ["مركز تجميل", "صالون نسائي", "مشغل نسائي", "عيادة ليزر", "سبا"], "why": "Instagram-only presence is the norm; bookings lost in DMs"},
+    {"sector": "مقاولات", "tier": 1, "queries": ["مقاولات عامة", "مقاول بناء", "شركة ترميم", "تشطيبات", "مقاول كهرباء", "سباكة", "عوازل"], "why": "B2B buyers verify the company on Google before signing; no site = no trust"},
+    {"sector": "عقار", "tier": 1, "queries": ["مكتب عقار", "شركة تطوير عقاري", "مكتب تسويق عقاري"], "why": "Leads value is high; listings need a page"},
+    {"sector": "قانون ومحاسبة", "tier": 1, "queries": ["مكتب محاماة", "مكتب محاسبة", "مكتب استشارات"], "why": "Trust-driven professional services, price-insensitive"},
+    {"sector": "مطاعم", "tier": 2, "queries": ["مطعم", "كافيه", "مطعم مندي", "مطعم مشويات", "بوفيه", "حلويات"], "why": "Huge count, needs menu + location + booking; decent budgets, more price-sensitive"},
+    {"sector": "تعليم", "tier": 2, "queries": ["روضة أطفال", "مركز تدريب", "معهد لغات", "مركز تحفيظ", "مدرسة أهلية"], "why": "Parents search Google, enrollment season pitch"},
+    {"sector": "سيارات", "tier": 2, "queries": ["ورشة سيارات", "مركز صيانة سيارات", "تلميع سيارات", "تأجير سيارات", "معرض سيارات"], "why": "Maps-driven discovery, few have sites"},
+    {"sector": "صحة ولياقة", "tier": 2, "queries": ["نادي رياضي", "صالة رياضية", "نادي نسائي", "مركز يوغا"], "why": "Membership sales via DM; site adds signup + schedule"},
+    {"sector": "منزل وخدمات", "tier": 2, "queries": ["شركة نقل عفش", "شركة تنظيف", "مكافحة حشرات", "تكييف وتبريد", "تصميم داخلي", "نجارة", "ألمنيوم وزجاج"], "why": "Pure Google-search businesses, very low website adoption"},
+    {"sector": "تجزئة", "tier": 3, "queries": ["محل عطور", "محل عبايات", "محل هدايا", "محل جوالات", "محل أثاث", "محل ملابس أطفال"], "why": "Many exist, but often prefer Salla/Zid stores; pitch a brochure site + store link"},
+    {"sector": "مناسبات", "tier": 3, "queries": ["قاعة أفراح", "استراحة", "تنظيم مناسبات", "تصوير مناسبات", "كوش أفراح"], "why": "Seasonal, image-heavy; gallery site converts"},
+    {"sector": "حيوانات", "tier": 3, "queries": ["عيادة بيطرية", "محل حيوانات أليفة"], "why": "Small niche, low competition"}
+  ],
+  "exclude_name_keywords": ["ماكدونالدز", "ستاربكس", "هرفي", "البيك", "كودو", "دانكن", "بيتزا هت", "دومينوز", "صب واي", "كنتاكي", "الطازج", "شاورمر", "بنده", "العثيم", "الدانوب", "تميمي", "جرير", "اكسترا", "ساكو", "ايكيا", "المستشفى", "مستشفى", "الحكومي", "بلدية", "وزارة", "هيئة", "جامعة", "بنك"]
+}
