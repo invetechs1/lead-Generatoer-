@@ -29,6 +29,13 @@ python scripts/audit_sites.py data/leads_with_website_<date>.csv --max-score 60
 `--mobile-only` keeps 9665… numbers so every wa.me link opens a real WhatsApp chat.
 Landlines (9661…) are still valuable — call them instead.
 
+## The proposal that closes (per lead, 2 minutes)
+
+1. Lead drawer → **🎨 عرض مصمم**. Pull their Google photos (one click) or upload the logo + 3–5 photos you saved from Instagram.
+2. Notes: two lines of what you noticed ("شعار أخضر غامق، متخصصون في التقويم، عرض للطلاب").
+3. **تصميم العرض الآن** → open the link, skim 20 seconds (headline, prices) → edit anything via the API/PATCH if needed.
+4. Send with the first-message template — `{proposal}` inserts the link. Then watch the drawer: *المشاهدات* tells you when they opened it; *أجاب العميل* tells you what they picked. A lead who taps "هذا الأسبوع" or "أبغى أبدأ" jumps to *negotiating* with today's follow-up — call them within the hour.
+
 ## Day 2+ — daily routine (45–60 min)
 
 1. Dashboard → **المتابعات المستحقة** first (replies come from follow-ups, not first messages).

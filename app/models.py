@@ -36,6 +36,7 @@ class Lead(Base):
     rating: Mapped[float | None] = mapped_column(Numeric(3, 2), nullable=True)
     reviews: Mapped[int | None] = mapped_column(Integer, nullable=True)
     source: Mapped[str] = mapped_column(String(40), default="manual")  # manual | csv | places
+    place_id: Mapped[str] = mapped_column(String(120), default="")  # Google Places resource id (for photos)
     site_score: Mapped[int | None] = mapped_column(Integer, nullable=True)  # 0-100 from services.site_audit (None = not audited)
     site_issues: Mapped[str] = mapped_column(Text, default="")  # newline-separated Arabic issues for the pitch
     status: Mapped[str] = mapped_column(String(30), default="new", index=True)
@@ -50,6 +51,27 @@ class Lead(Base):
     owner = relationship("User")
     activities = relationship("Activity", back_populates="lead", cascade="all, delete-orphan")
     client = relationship("Client", back_populates="lead", uselist=False)
+    proposal = relationship("Proposal", back_populates="lead", uselist=False, cascade="all, delete-orphan")
+
+
+class Proposal(Base):
+    """A designed, personalised website proposal for one lead, shared at /p/{token}."""
+    __tablename__ = "proposals"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    lead_id: Mapped[int] = mapped_column(ForeignKey("leads.id", ondelete="CASCADE"), unique=True, index=True)
+    token: Mapped[str] = mapped_column(String(48), unique=True, index=True)
+    kind: Mapped[str] = mapped_column(String(40), default="business")  # restaurant | clinic | beauty | contractor | business
+    brief: Mapped[str] = mapped_column(Text, default="{}")  # JSON design brief from services.designer
+    photos: Mapped[str] = mapped_column(Text, default="[]")  # JSON list of image URLs (uploads or Google)
+    answers: Mapped[str] = mapped_column(Text, default="{}")  # JSON answers the client tapped on the page
+    views: Mapped[int] = mapped_column(Integer, default=0)
+    last_viewed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    answered_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    source: Mapped[str] = mapped_column(String(20), default="preset")  # preset | claude
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=now, onupdate=now)
+
+    lead = relationship("Lead", back_populates="proposal")
 
 
 class Template(Base):

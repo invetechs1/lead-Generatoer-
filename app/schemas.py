@@ -171,6 +171,50 @@ class AuditOut(BaseModel):
     issues: list[str]
 
 
+class ProposalIn(BaseModel):
+    kind: str = Field(default="", max_length=40)  # restaurant | clinic | beauty | contractor | realestate | education | auto | fitness | retail | business | "" (auto)
+    notes: str = Field(default="", max_length=2000)  # what you learned from their Instagram / call — the designer uses it
+    instagram_bio: str = Field(default="", max_length=1000)
+
+
+class ProposalOut(BaseModel):
+    lead_id: int
+    token: str
+    url: str
+    kind: str
+    source: str
+    brief: dict
+    photos: list[str]
+    answers: dict
+    views: int
+    last_viewed_at: Optional[datetime]
+    answered_at: Optional[datetime]
+    created_at: datetime
+
+
+class BriefPatch(BaseModel):
+    brief: dict
+
+
+class AnswersIn(BaseModel):
+    style: str = Field(default="", max_length=40)  # palette the client picked
+    priorities: list[str] = Field(default_factory=list, max_length=8)
+    timing: str = Field(default="", max_length=40)  # this_week | this_month | thinking | not_interested
+    notes: str = Field(default="", max_length=1000)
+    wants_start: bool = False
+
+    @field_validator("priorities")
+    @classmethod
+    def _short(cls, v):
+        return [x[:40] for x in v]
+
+
+class ButtonsSendIn(BaseModel):
+    body: str = Field(min_length=1, max_length=1024)
+    header: str = Field(default="", max_length=60)
+    buttons: list[dict] = Field(min_length=1, max_length=3)  # [{id, title}]
+
+
 class SendOut(BaseModel):
     lead_id: int
     phone: str

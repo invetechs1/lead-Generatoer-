@@ -162,6 +162,7 @@
 
   async function openLead(id) {
     const [lead, acts] = await Promise.all([api(`/api/leads/${id}`), api(`/api/leads/${id}/activities`)]);
+    try { lead._proposal_url = (await api(`/api/leads/${id}/proposal`)).url; } catch (e) { lead._proposal_url = ""; }
     const tpls = S.templates.filter((t) => t.is_active);
     const d = drawer(`<h3>${esc(lead.name)}</h3><div class="hint ltr" style="text-align:right">+${lead.phone} ${lead.city ? " · " + esc(lead.city) : ""} ${lead.sector ? " · " + esc(lead.sector) : ""}</div>
       <div class="actions">
@@ -170,6 +171,7 @@
         ${lead.maps_url ? `<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${esc(lead.maps_url)}">الخريطة</a>` : ""}
         ${lead.website ? `<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${esc(/^https?:/.test(lead.website) ? lead.website : "https://" + lead.website)}">الموقع${lead.site_score != null ? " " + lead.site_score + "/100" : ""}</a><button class="btn btn-ghost btn-sm" id="aud">🔍 فحص الموقع</button>` : ""}
         <a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${esc(demoFor(lead))}">👁 النموذج باسمهم</a>
+        <button class="btn btn-dark btn-sm" id="prop">🎨 عرض مصمم</button>
         <button class="btn btn-ghost btn-sm" id="ed">تعديل</button>
         ${lead.status !== "won" ? `<button class="btn btn-ghost btn-sm" id="conv">✔ تحويل لعميل</button>` : ""}
         ${S.user.role === "admin" ? `<button class="btn btn-danger btn-sm" id="del">حذف</button>` : ""}
@@ -188,7 +190,7 @@
       <div class="card"><h2>ملاحظة / مكالمة</h2><div class="row row-2"><select id="ak"><option value="note">ملاحظة</option><option value="call">مكالمة</option></select><input id="ac" placeholder="ماذا حدث؟"></div><div class="actions"><button class="btn btn-ghost btn-sm" id="adda">إضافة</button></div></div>
       <div class="card"><h2>السجل</h2>${acts.length ? acts.map((a) => `<div class="act"><small>${new Date(a.created_at + "Z").toLocaleString("ar-SA")} · ${{ whatsapp: "واتساب", call: "مكالمة", note: "ملاحظة", status: "تغيير حالة", email: "بريد" }[a.kind] || a.kind}${a.channel ? " (" + a.channel + ")" : ""}</small><pre>${esc(a.content)}</pre></div>`).join("") : `<div class="hint">لا يوجد نشاط بعد</div>`}</div>`);
     const issues = (lead.site_issues || "").split("\n").filter(Boolean).map((x) => "• " + x).join("\n");
-    const render = (body) => body.replaceAll("{name}", lead.name).replaceAll("{city}", lead.city).replaceAll("{sector}", lead.sector).replaceAll("{activity}", lead.sector).replaceAll("{website}", lead.website || "").replaceAll("{issues}", issues).replaceAll("{demo}", demoFor(lead) || "[الرابط]").replaceAll("{sender}", S.settings.sender_name || "");
+    const render = (body) => body.replaceAll("{name}", lead.name).replaceAll("{city}", lead.city).replaceAll("{sector}", lead.sector).replaceAll("{activity}", lead.sector).replaceAll("{website}", lead.website || "").replaceAll("{issues}", issues).replaceAll("{demo}", lead._proposal_url || demoFor(lead) || "[الرابط]").replaceAll("{proposal}", lead._proposal_url || "[رابط العرض]").replaceAll("{sender}", S.settings.sender_name || "");
     const pv = () => { const c = $("#custom", d.el).value.trim(); const t = tpls.find((x) => x.id === +$("#tp", d.el).value); $("#pv", d.el).textContent = render(c || (t ? t.body : "")); };
     pv(); $("#tp", d.el).onchange = pv; $("#custom", d.el).oninput = pv;
     $("#send", d.el).onclick = async () => {
@@ -204,9 +206,36 @@
     $("#svst", d.el).onclick = async () => { try { await api(`/api/leads/${id}`, { method: "PATCH", body: { status: $("#st", d.el).value, next_follow_up: $("#fu", d.el).value || null } }); toast("تم الحفظ"); d.close(); renderLeads(); } catch (e) { toast(e.message, true); } };
     $("#adda", d.el).onclick = async () => { try { await api(`/api/leads/${id}/activities`, { method: "POST", body: { kind: $("#ak", d.el).value, content: $("#ac", d.el).value } }); d.close(); openLead(id); } catch (e) { toast(e.message, true); } };
     $("#ed", d.el).onclick = () => { d.close(); leadForm(lead); };
+    $("#prop", d.el).onclick = () => { d.close(); proposalForm(lead); };
     const aud = $("#aud", d.el); if (aud) aud.onclick = async () => { aud.disabled = true; aud.textContent = "جارٍ الفحص…"; try { const r = await api(`/api/leads/${id}/audit`, { method: "POST" }); toast(`نتيجة الموقع ${r.score}/100 — ${r.issues.length} ملاحظة`); d.close(); openLead(id); } catch (e) { toast(e.message, true); aud.disabled = false; aud.textContent = "🔍 فحص الموقع"; } };
     const conv = $("#conv", d.el); if (conv) conv.onclick = () => { d.close(); clientForm({ lead_id: lead.id, company: lead.name, phone: lead.phone }); };
     const del = $("#del", d.el); if (del) del.onclick = async () => { if (!confirm("حذف العميل نهائيًا؟")) return; await api(`/api/leads/${id}`, { method: "DELETE" }); d.close(); renderLeads(); };
+  }
+
+  // ---------- DESIGNED PROPOSAL ----------
+  const KIND_AR = { "": "تلقائي حسب النشاط", restaurant: "مطعم / كافيه", clinic: "عيادة", beauty: "تجميل / صالون", contractor: "مقاولات / خدمات منزلية", realestate: "عقار", education: "تعليم", auto: "سيارات", fitness: "لياقة", retail: "تجزئة", business: "منشأة عامة" };
+  const TIMING_AR = { this_week: "هذا الأسبوع", this_month: "خلال شهر", thinking: "يفكر", not_interested: "غير مهتم" };
+  async function proposalForm(lead) {
+    let prop = null; try { prop = await api(`/api/leads/${lead.id}/proposal`); } catch (e) { /* none yet */ }
+    const photos = (await api(`/api/leads/${lead.id}/photos`)).photos;
+    const d = drawer(`<h3>🎨 عرض مصمم لـ ${esc(lead.name)}</h3>
+      <p class="hint">${S.settings.designer_api ? "المصمم الذكي مفعّل: يحلل صور المنشأة ويكتب المحتوى ويختار الألوان." : "<b style='color:var(--warn)'>ANTHROPIC_API_KEY غير مضبوط</b> — سيُستخدم قالب القطاع الجاهز (أضف المفتاح في .env لتصميم مخصص)."}</p>
+      ${prop ? `<div class="card" style="background:#F3F8F4"><h2>الرابط الحالي</h2><input dir="ltr" readonly value="${esc(prop.url)}" onclick="this.select()"><div class="actions"><a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${esc(prop.url)}">فتح</a><button class="btn btn-ghost btn-sm" id="cp">نسخ الرابط</button><a class="btn btn-wa btn-sm" target="_blank" rel="noopener" href="https://wa.me/${lead.phone}?text=${encodeURIComponent("هذا عرض تصميم أعددته خصيصًا لـ " + lead.name + ":\n" + prop.url + "\nأخبرني برأيك 🙏")}">إرسال بواتساب</a></div>
+        <div class="hint">المصدر: ${esc(prop.source)} · المشاهدات: <b>${prop.views}</b>${prop.last_viewed_at ? " · آخر فتح " + new Date(prop.last_viewed_at + "Z").toLocaleString("ar-SA") : ""}</div>
+        ${prop.answered_at ? `<div class="preview" style="margin-top:8px">🎯 <b>أجاب العميل:</b> النمط: ${esc(prop.answers.style || "-")} · الأهم: ${esc((prop.answers.priorities || []).join("، ") || "-")} · التوقيت: ${esc(TIMING_AR[prop.answers.timing] || prop.answers.timing || "-")}${prop.answers.wants_start ? " · <b>✅ ضغط أبغى أبدأ</b>" : ""}${prop.answers.notes ? "\nملاحظاته: " + esc(prop.answers.notes) : ""}</div>` : `<div class="hint">لم يجب العميل على الأسئلة بعد.</div>`}
+        <div class="hint" style="margin-top:6px">💡 ${esc(prop.brief.design_rationale || "")}</div></div>` : ""}
+      <div class="card"><h2>1) صور المنشأة (${photos.length})</h2>
+        <div id="ph" style="display:flex;gap:6px;flex-wrap:wrap">${photos.map((u) => `<img src="${esc(u)}" style="width:72px;height:72px;object-fit:cover;border-radius:8px">`).join("") || '<span class="hint">لا توجد صور — أضف صورهم أو شعارهم، أو اجلبها من قوقل</span>'}</div>
+        <div class="actions"><label class="btn btn-ghost btn-sm" style="cursor:pointer">📤 رفع صور<input id="up" type="file" accept="image/*" multiple hidden></label><button class="btn btn-ghost btn-sm" id="gp" ${S.settings.places_api ? "" : "disabled"}>📍 جلب صورهم من قوقل</button></div></div>
+      <div class="card"><h2>2) توجيه المصمم</h2>
+        <label>نوع القالب</label><select id="kind">${Object.entries(KIND_AR).map(([k, v]) => `<option value="${k}" ${prop && prop.kind === k ? "selected" : ""}>${v}</option>`).join("")}</select>
+        <label>ملاحظاتك (ماذا لاحظت في إنستقرامهم/موقعهم؟ ألوان الشعار؟ خدماتهم المميزة؟)</label><textarea id="notes" placeholder="مثال: شعارهم أخضر غامق، متخصصون في تقويم الأسنان، عندهم عرض للطلاب"></textarea>
+        <label>نبذة حسابهم في إنستقرام (اختياري)</label><textarea id="bio" style="min-height:60px"></textarea>
+        <div class="actions"><button class="btn btn-dark btn-block" id="gen">${prop ? "🔄 إعادة التصميم" : "✨ تصميم العرض الآن"}</button></div></div>`);
+    const cp = $("#cp", d.el); if (cp) cp.onclick = () => { navigator.clipboard.writeText(prop.url); toast("نُسخ الرابط"); };
+    $("#up", d.el).onchange = async (e) => { const fd = new FormData(); [...e.target.files].forEach((f) => fd.append("files", f)); try { await api(`/api/leads/${lead.id}/photos`, { method: "POST", body: fd }); toast("رُفعت الصور"); d.close(); proposalForm(lead); } catch (err) { toast(err.message, true); } };
+    $("#gp", d.el).onclick = async () => { $("#gp", d.el).disabled = true; try { const r = await api(`/api/leads/${lead.id}/photos/google`, { method: "POST" }); toast(`جُلبت ${r.saved.length} صورة`); d.close(); proposalForm(lead); } catch (err) { toast(err.message, true); $("#gp", d.el).disabled = false; } };
+    $("#gen", d.el).onclick = async () => { const b = $("#gen", d.el); b.disabled = true; b.textContent = "المصمم يعمل… (قد يستغرق دقيقة)"; try { const r = await api(`/api/leads/${lead.id}/proposal`, { method: "POST", body: { kind: $("#kind", d.el).value, notes: $("#notes", d.el).value, instagram_bio: $("#bio", d.el).value } }); toast(`جاهز (${r.source})`); d.close(); proposalForm(lead); } catch (err) { toast(err.message, true); b.disabled = false; b.textContent = "✨ تصميم العرض الآن"; } };
   }
 
   function discoverForm() {
@@ -287,7 +316,8 @@
     const users = admin ? await api("/api/auth/users") : [];
     shell(`<div class="card"><h2>إعدادات الحملة</h2>
         <label>اسم المرسل (يظهر في {sender})</label><input id="sn" value="${esc(S.settings.sender_name)}" ${admin ? "" : "disabled"}>
-        <label>رابط الموقع النموذجي ({demo})</label><input id="du" dir="ltr" value="${esc(S.settings.demo_url)}" ${admin ? "" : "disabled"}>
+        <label>رقم واتساب المبيعات (يظهر في صفحة العرض ليتواصل العميل معك) — 9665xxxxxxxx</label><input id="sp" dir="ltr" value="${esc(S.settings.sender_phone || "")}" ${admin ? "" : "disabled"}>
+        <label>رابط الموقع النموذجي ({demo}) — يُستبدل تلقائيًا برابط العرض المصمم إن وُجد</label><input id="du" dir="ltr" value="${esc(S.settings.demo_url)}" ${admin ? "" : "disabled"}>
         <div class="row row-2"><div><label>الحد اليومي للرسائل</label><input id="cap" type="number" value="${esc(S.settings.daily_send_cap)}" ${admin ? "" : "disabled"}></div><div><label>السعر الافتراضي (ر.س/شهر)</label><input id="pr" type="number" value="${esc(S.settings.default_price)}" ${admin ? "" : "disabled"}></div></div>
         <p class="hint" style="margin-top:8px">WhatsApp Cloud API: ${S.settings.whatsapp_api ? "مفعّل ✔" : "غير مفعّل (يُستخدم wa.me)"} · Google Places: ${S.settings.places_api ? "مفعّل ✔" : "غير مفعّل"} — تُضبط من ملف .env</p>
         ${admin ? `<div class="actions"><button class="btn btn-dark" id="sv">حفظ</button></div>` : ""}</div>
@@ -296,7 +326,7 @@
         <div class="row row-4" style="margin-top:12px"><input id="un" placeholder="الاسم"><input id="ue" placeholder="البريد" dir="ltr"><input id="up" placeholder="كلمة المرور" type="password" dir="ltr"><select id="ur"><option value="agent">مندوب</option><option value="admin">مدير</option></select></div>
         <div class="actions"><button class="btn btn-ghost btn-sm" id="addu">+ مستخدم</button></div></div>` : ""}`);
     if (admin) {
-      $("#sv").onclick = async () => { try { S.settings = await api("/api/settings", { method: "PUT", body: { sender_name: $("#sn").value, demo_url: $("#du").value, daily_send_cap: $("#cap").value, default_price: $("#pr").value } }); toast("تم الحفظ"); } catch (e) { toast(e.message, true); } };
+      $("#sv").onclick = async () => { try { S.settings = await api("/api/settings", { method: "PUT", body: { sender_name: $("#sn").value, sender_phone: $("#sp").value.replace(/\D/g, ""), demo_url: $("#du").value, daily_send_cap: $("#cap").value, default_price: $("#pr").value } }); toast("تم الحفظ"); } catch (e) { toast(e.message, true); } };
       $("#addu").onclick = async () => { try { await api("/api/auth/users", { method: "POST", body: { name: $("#un").value, email: $("#ue").value, password: $("#up").value, role: $("#ur").value } }); toast("أُضيف المستخدم"); renderSettings(); } catch (e) { toast(e.message, true); } };
       document.querySelectorAll(".tog").forEach((b) => b.onclick = async () => { await api(`/api/auth/users/${b.dataset.i}/toggle`, { method: "PATCH" }); renderSettings(); });
     }

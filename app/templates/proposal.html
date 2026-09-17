@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ brief.brand_name }} — {{ brief.tagline }}</title>
+<meta name="description" content="{{ brief.subheadline }}">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family={{ brief.font_display|replace(' ', '+') }}:wght@400;600;700;800&family={{ brief.font_body|replace(' ', '+') }}:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--p:{{ brief.palette.primary }};--a:{{ brief.palette.accent }};--d:{{ brief.palette.dark }};--l:{{ brief.palette.light }};--paper:{{ brief.palette.paper or '#fff' }};--ink:#171717;--mut:#66707A;--line:rgba(0,0,0,.08);--wa:#25D366;--fd:"{{ brief.font_display }}";--fb:"{{ brief.font_body }}"}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;font-family:var(--fb),system-ui,sans-serif;background:var(--paper);color:var(--ink);line-height:1.75;-webkit-font-smoothing:antialiased;transition:background .4s}
+h1,h2,h3,.disp{font-family:var(--fd),var(--fb),sans-serif;letter-spacing:-.01em}
+a{color:inherit;text-decoration:none}img{max-width:100%;display:block}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:14px 26px;border-radius:14px;font-weight:600;font-size:16px;border:0;cursor:pointer;transition:transform .15s,box-shadow .15s,background .3s;font-family:var(--fb)}
+.btn:hover{transform:translateY(-1px)}.btn:active{transform:scale(.98)}
+.btn-p{background:var(--p);color:#fff;box-shadow:0 10px 24px -12px var(--p)}.btn-a{background:var(--a);color:var(--d)}.btn-wa{background:var(--wa);color:#fff}.btn-o{border:1.5px solid rgba(255,255,255,.55);color:#fff;background:rgba(255,255,255,.08);backdrop-filter:blur(6px)}.btn-line{border:1.5px solid var(--p);color:var(--p);background:transparent}
+.btn svg{width:20px;height:20px;fill:currentColor}
+.ribbon{background:var(--d);color:#fff;font-size:13px;padding:9px 16px;text-align:center;opacity:.95}.ribbon b{color:var(--a)}
+header.nav{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--paper) 86%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.nav .wrap{display:flex;align-items:center;justify-content:space-between;height:72px}
+.brand{display:flex;align-items:center;gap:12px}.brand .mark{width:42px;height:42px;border-radius:12px;background:var(--p);color:#fff;display:grid;place-items:center;font-family:var(--fd);font-weight:800;font-size:20px;transition:background .3s}
+.brand b{font-family:var(--fd);font-size:19px;display:block;line-height:1.2}.brand small{color:var(--mut);font-size:12px}
+.nav ul{display:none;list-style:none;gap:26px;margin:0;padding:0;font-weight:500;font-size:15px}@media(min-width:880px){.nav ul{display:flex}}
+.nav .btn{padding:10px 18px;font-size:14px}
+/* hero */
+.hero{position:relative;min-height:min(86vh,760px);display:flex;align-items:flex-end;color:#fff;overflow:hidden;background:var(--d)}
+.hero .bg{position:absolute;inset:0;background-size:cover;background-position:center;transform:scale(1.02)}
+.hero .shade{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.82) 0%,rgba(0,0,0,.45) 45%,rgba(0,0,0,.15) 100%)}
+.hero .pattern{position:absolute;inset:0;opacity:.14;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%23fff' stroke-width='1.2'%3E%3Cpath d='M60 6l15 39 39 15-39 15-15 39-15-39-39-15 39-15z'/%3E%3Ccircle cx='60' cy='60' r='22'/%3E%3C/g%3E%3C/svg%3E");background-size:120px}
+.hero .wrap{position:relative;padding-top:120px;padding-bottom:64px;width:100%}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--a);font-weight:600;margin-bottom:14px}.eyebrow i{width:26px;height:2px;background:var(--a);display:inline-block}
+.hero h1{font-size:clamp(34px,6vw,64px);line-height:1.15;margin:0 0 16px;max-width:14ch;font-weight:800}
+.hero p{font-size:clamp(16px,2vw,20px);max-width:56ch;margin:0 0 30px;color:rgba(255,255,255,.88)}
+.cta{display:flex;gap:12px;flex-wrap:wrap}
+.trust{display:flex;gap:12px;flex-wrap:wrap;margin-top:34px}.trust div{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(8px);border-radius:14px;padding:10px 16px;font-size:14px;display:flex;align-items:center;gap:8px}.trust b{font-family:var(--fd);font-size:18px;color:var(--a)}
+.trust svg{width:18px;height:18px;fill:var(--a)}
+/* sections */
+section{padding:clamp(64px,9vw,104px) 0}section.alt{background:var(--l);transition:background .4s}
+.sh{margin-bottom:40px;max-width:60ch}.sh h2{font-size:clamp(28px,4vw,40px);margin:0 0 10px;line-height:1.2}.sh p{margin:0;color:var(--mut);font-size:17px}
+.sh .eyebrow{color:var(--p)}.sh .eyebrow i{background:var(--p)}
+.grid{display:grid;gap:18px}@media(min-width:700px){.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}.g4{grid-template-columns:repeat(4,1fr)}}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:22px;padding:28px;position:relative;transition:transform .2s,box-shadow .2s}.card:hover{transform:translateY(-3px);box-shadow:0 24px 44px -28px rgba(0,0,0,.35)}
+.card .num{font-family:var(--fd);font-size:13px;color:var(--a);font-weight:700;letter-spacing:.1em;margin-bottom:14px}
+.card h3{font-size:20px;margin:0 0 8px}.card p{margin:0;color:var(--mut);font-size:15px}
+.price{display:inline-block;margin-top:16px;padding:6px 12px;border-radius:999px;background:var(--l);color:var(--p);font-weight:700;font-size:14px}
+.gal{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}@media(min-width:760px){.gal{grid-template-columns:repeat(4,1fr);grid-auto-rows:220px}.gal .big{grid-column:span 2;grid-row:span 2}}
+.gal a{display:block;border-radius:18px;overflow:hidden;aspect-ratio:1;background:var(--l)}@media(min-width:760px){.gal a{aspect-ratio:auto;height:100%}}
+.gal img{width:100%;height:100%;object-fit:cover;transition:transform .5s}.gal a:hover img{transform:scale(1.04)}
+.about{display:grid;gap:28px;align-items:center}@media(min-width:880px){.about{grid-template-columns:1.1fr .9fr}}
+.about p{font-size:18px;color:#333;margin:0}
+.quote{background:var(--d);color:#fff;border-radius:24px;padding:34px;position:relative;overflow:hidden;transition:background .4s}.quote::after{content:"";position:absolute;inset:auto -40px -40px auto;width:180px;height:180px;border-radius:50%;background:var(--a);opacity:.25}
+.quote b{font-family:var(--fd);font-size:44px;display:block;line-height:1;color:var(--a)}.quote span{font-size:14px;color:rgba(255,255,255,.75)}
+.steps{display:grid;gap:18px;counter-reset:st}@media(min-width:760px){.steps{grid-template-columns:repeat(4,1fr)}}
+.step{padding:26px 22px;border-radius:20px;background:var(--paper);border:1px solid var(--line)}.step::before{counter-increment:st;content:counter(st,arabic-indic);display:grid;place-items:center;width:42px;height:42px;border-radius:50%;background:var(--p);color:#fff;font-family:var(--fd);font-weight:700;font-size:18px;margin-bottom:14px;transition:background .3s}
+.step h3{font-size:17px;margin:0}
+.rev{display:grid;gap:18px}@media(min-width:760px){.rev{grid-template-columns:repeat(3,1fr)}}
+.rev .card{font-size:16px}.rev .card .stars{color:var(--a);letter-spacing:2px;margin-bottom:10px;font-size:15px}.rev .card b{display:block;margin-top:14px;font-size:14px;color:var(--p)}
+.hours{display:grid;gap:22px}@media(min-width:880px){.hours{grid-template-columns:1fr 1fr}}
+.hours ul{list-style:none;padding:0;margin:0 0 18px}.hours li{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px dashed var(--line)}.hours li b{color:var(--p)}
+.map{border-radius:22px;min-height:280px;background:var(--l);border:1px solid var(--line);display:grid;place-items:center;text-align:center;color:var(--mut);padding:30px;position:relative;overflow:hidden}
+.map::before{content:"";position:absolute;inset:0;background-image:radial-gradient(var(--line) 1px,transparent 1px);background-size:18px 18px;opacity:.9}.map>div{position:relative}.map svg{width:44px;height:44px;fill:var(--p);margin-bottom:8px}
+details{border:1px solid var(--line);border-radius:16px;padding:16px 20px;margin-bottom:10px;background:var(--paper)}summary{cursor:pointer;font-weight:600;font-size:17px;list-style:none;display:flex;justify-content:space-between;align-items:center}summary::after{content:"+";font-size:22px;color:var(--p)}details[open] summary::after{content:"–"}details p{margin:10px 0 0;color:var(--mut)}
+/* offer */
+.offer{background:var(--d);color:#fff;transition:background .4s}
+.offer .box{display:grid;gap:28px;align-items:center}@media(min-width:880px){.offer .box{grid-template-columns:1.1fr .9fr}}
+.offer h2{font-size:clamp(28px,4vw,42px);margin:0 0 14px;line-height:1.2}.offer .pts{list-style:none;padding:0;margin:18px 0 0;display:grid;gap:10px}.offer .pts li{display:flex;gap:10px;align-items:flex-start;font-size:16px;color:rgba(255,255,255,.9)}.offer .pts svg{width:22px;height:22px;fill:var(--a);flex:none;margin-top:3px}
+.pricecard{background:#fff;color:var(--ink);border-radius:26px;padding:34px;text-align:center;box-shadow:0 40px 80px -40px rgba(0,0,0,.6)}
+.pricecard .amt{font-family:var(--fd);font-size:56px;font-weight:800;color:var(--p);line-height:1}.pricecard .amt small{font-size:18px;color:var(--mut);font-weight:500}
+.pricecard p{color:var(--mut);margin:8px 0 22px}.pricecard .btn{width:100%}
+/* questionnaire */
+.ask{background:var(--l);transition:background .4s}
+.askbox{background:var(--paper);border-radius:28px;padding:clamp(24px,4vw,44px);border:1px solid var(--line);box-shadow:0 30px 60px -40px rgba(0,0,0,.35)}
+.q{margin-bottom:28px}.q h3{font-size:19px;margin:0 0 4px}.q p{margin:0 0 14px;color:var(--mut);font-size:14px}
+.sw{display:flex;gap:12px;flex-wrap:wrap}.sw button{border:2px solid transparent;border-radius:16px;padding:6px;background:var(--paper);cursor:pointer;display:grid;gap:6px;justify-items:center;font-family:var(--fb);font-size:13px;color:var(--ink);transition:border-color .2s}.sw button.on{border-color:var(--p)}
+.sw i{display:block;width:64px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--c1) 55%,var(--c2) 55%)}
+.chips{display:flex;gap:10px;flex-wrap:wrap}.chips button{border:1.5px solid var(--line);background:var(--paper);border-radius:999px;padding:10px 16px;font-family:var(--fb);font-size:15px;cursor:pointer;color:var(--ink);transition:all .2s}.chips button.on{background:var(--p);border-color:var(--p);color:#fff}
+textarea{width:100%;border:1.5px solid var(--line);border-radius:14px;padding:14px;font:inherit;background:var(--paper);min-height:90px;resize:vertical}
+.done{text-align:center;padding:30px 10px}.done h3{font-size:26px;margin:0 0 8px}.done p{color:var(--mut);margin:0 0 20px}
+footer{padding:30px 0 100px;color:var(--mut);font-size:14px;text-align:center;border-top:1px solid var(--line)}@media(min-width:880px){footer{padding-bottom:40px}}
+.dock{position:fixed;bottom:0;inset-inline:0;z-index:30;display:flex;gap:10px;padding:10px 14px max(10px,env(safe-area-inset-bottom));background:color-mix(in srgb,var(--paper) 92%,transparent);backdrop-filter:blur(12px);border-top:1px solid var(--line)}.dock .btn{flex:1;padding:13px 10px;font-size:15px}@media(min-width:880px){.dock{display:none}}
+.fab{position:fixed;bottom:22px;inset-inline-start:22px;z-index:30;display:none;border-radius:999px;padding:14px 22px;box-shadow:0 14px 30px -10px rgba(0,0,0,.4)}@media(min-width:880px){.fab{display:inline-flex}}
+.reveal{opacity:0;transform:translateY(16px);transition:opacity .6s,transform .6s}.reveal.in{opacity:1;transform:none}
+</style>
+</head>
+<body>
+{% set wa_msg = "السلام عليكم، شفت عرض موقع " ~ brief.brand_name ~ " وأبغى أبدأ" %}
+{% set hero_src = photos[brief.hero_photo] if photos and brief.hero_photo is not none and brief.hero_photo >= 0 and brief.hero_photo < photos|length else "" %}
+<div class="ribbon">عرض تصميم أوّلي مُعد خصيصًا لـ <b>{{ brief.brand_name }}</b> · الموقع النهائي بشعاركم وصوركم ونطاقكم الخاص خلال <b>48 ساعة</b> من الموافقة</div>
+
+<header class="nav"><div class="wrap">
+  <div class="brand"><div class="mark">{{ brief.brand_name[0] }}</div><div><b>{{ brief.brand_name }}</b><small>{{ brief.tagline }}</small></div></div>
+  <ul>{% for s in brief.sections %}{% if s.id != 'offer' %}<li><a href="#{{ s.id }}">{{ s.title }}</a></li>{% endif %}{% endfor %}<li><a href="#ask">رأيك</a></li></ul>
+  <a class="btn btn-p" href="#offer">{{ brief.cta_primary }}</a>
+</div></header>
+
+<section class="hero" style="padding:0">
+  {% if hero_src %}<div class="bg" style="background-image:url('{{ hero_src }}')"></div><div class="shade"></div>{% else %}<div class="bg" style="background:linear-gradient(135deg,var(--d),var(--p))"></div><div class="pattern"></div><div class="shade" style="opacity:.55"></div>{% endif %}
+  <div class="wrap">
+    <div class="eyebrow"><i></i>{{ lead.sector or brief.kind }} · {{ lead.city or 'السعودية' }}</div>
+    <h1>{{ brief.headline }}</h1>
+    <p>{{ brief.subheadline }}</p>
+    <div class="cta"><a class="btn btn-a" href="#offer">{{ brief.cta_primary }}</a><a class="btn btn-o" href="#{{ brief.sections[0].id }}">{{ brief.cta_secondary }}</a></div>
+    <div class="trust">
+      {% if lead.rating %}<div><svg viewBox="0 0 24 24"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg><b>{{ '%.1f'|format(lead.rating) }}</b> على قوقل{% if lead.reviews %} · {{ lead.reviews }} تقييم{% endif %}</div>{% endif %}
+      <div><svg viewBox="0 0 24 24"><path d="M9 16.2l-3.5-3.5L4 14.2 9 19.2 20 8.2l-1.5-1.5z"/></svg>رد خلال دقائق عبر واتساب</div>
+      <div><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 017 7c0 5.2-7 13-7 13S5 14.2 5 9a7 7 0 017-7zm0 9.5A2.5 2.5 0 1012 6a2.5 2.5 0 000 5.5z"/></svg>{{ lead.city or 'السعودية' }}</div>
+    </div>
+  </div>
+</section>
+
+{% for s in brief.sections %}
+{% if s.id == 'services' %}
+<section id="services"><div class="wrap">
+  <div class="sh reveal"><div class="eyebrow"><i></i>{{ s.title }}</div><h2>{{ s.title }}</h2>{% if s.subtitle %}<p>{{ s.subtitle }}</p>{% endif %}</div>
+  <div class="grid g3">{% for sv in brief.services %}<div class="card reveal"><div class="num">٠{{ loop.index }}</div><h3>{{ sv.title }}</h3><p>{{ sv.desc }}</p>{% if sv.price %}<span class="price">{{ sv.price }}</span>{% endif %}</div>{% endfor %}</div>
+</div></section>
+{% elif s.id == 'gallery' and photos|length > 1 %}
+<section id="gallery" class="alt"><div class="wrap">
+  <div class="sh reveal"><div class="eyebrow"><i></i>{{ s.title }}</div><h2>{{ s.title }}</h2><p>{{ s.subtitle or 'صور حقيقية من المنشأة' }}</p></div>
+  <div class="gal">{% for ph in photos[:5] %}<a href="{{ ph }}" target="_blank" rel="noopener" class="{{ 'big' if loop.first else '' }} reveal"><img src="{{ ph }}" alt="{{ brief.brand_name }}" loading="lazy"></a>{% endfor %}</div>
+</div></section>
+{% elif s.id == 'about' %}
+<section id="about"><div class="wrap about">
+  <div class="reveal"><div class="eyebrow" style="color:var(--p)"><i style="background:var(--p)"></i>{{ s.title }}</div><h2 class="disp" style="font-size:clamp(26px,4vw,38px);margin:0 0 14px">{{ s.subtitle or brief.tagline }}</h2><p>{{ brief.about }}</p></div>
+  <div class="quote reveal">{% if lead.rating %}<b>{{ '%.1f'|format(lead.rating) }} ★</b><span>تقييم قوقل{% if lead.reviews %} من {{ lead.reviews }} عميل{% endif %}</span>{% else %}<b>{{ brief.mood }}</b><span>الهوية البصرية المقترحة لموقعكم</span>{% endif %}<p style="margin:18px 0 0;font-size:16px;color:rgba(255,255,255,.85)">{{ brief.subheadline }}</p></div>
+</div></section>
+{% elif s.id == 'steps' and brief.steps %}
+<section id="steps" class="alt"><div class="wrap">
+  <div class="sh reveal"><div class="eyebrow"><i></i>{{ s.title }}</div><h2>{{ s.title }}</h2>{% if s.subtitle %}<p>{{ s.subtitle }}</p>{% endif %}</div>
+  <div class="steps">{% for st in brief.steps %}<div class="step reveal"><h3>{{ st }}</h3></div>{% endfor %}</div>
+</div></section>
+{% elif s.id == 'reviews' %}
+<section id="reviews"><div class="wrap">
+  <div class="sh reveal"><div class="eyebrow"><i></i>{{ s.title }}</div><h2>{{ s.title }}</h2><p>{{ s.subtitle or 'تقييمات قوقل الحقيقية تظهر هنا تلقائيًا وتتحدّث باستمرار' }}</p></div>
+  <div class="rev">
+    {% if lead.rating %}<div class="card reveal" style="background:var(--l)"><div class="stars">★★★★★</div><div class="disp" style="font-size:40px;font-weight:800;color:var(--p);line-height:1">{{ '%.1f'|format(lead.rating) }}</div><p>متوسط تقييمكم على خرائط قوقل{% if lead.reviews %} من {{ lead.reviews }} تقييم{% endif %}</p></div>{% endif %}
+    <div class="card reveal"><div class="stars">★★★★★</div>«تعامل راقٍ والتزام بالوقت، وأنصح به.»<b>عميل — عبر قوقل</b></div>
+    <div class="card reveal"><div class="stars">★★★★★</div>«رد سريع على الواتساب ومتابعة حتى بعد التسليم.»<b>عميل — عبر قوقل</b></div>
+  </div>
+</div></section>
+{% elif s.id == 'hours' %}
+<section id="hours" class="alt"><div class="wrap">
+  <div class="sh reveal"><div class="eyebrow"><i></i>{{ s.title }}</div><h2>{{ s.title }}</h2></div>
+  <div class="hours">
+    <div class="card reveal"><ul><li><span>السبت – الخميس</span><b>10:00 ص – 11:00 م</b></li><li><span>الجمعة</span><b>4:00 م – 11:00 م</b></li></ul>
+      <p style="margin:0 0 6px;color:var(--mut)">📍 {{ lead.city or 'السعودية' }} — يُربط بموقعكم الفعلي على خرائط قوقل</p>
+      <div class="cta" style="margin-top:18px"><a class="btn btn-wa" href="https://wa.me/{{ biz_phone }}"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 00-8.6 15.1L2 22l5.1-1.3A10 10 0 1012 2zm0 18.2a8.2 8.2 0 01-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1112 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 01-3.3-2.9c-.2-.4.3-.4.7-1.2.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 00-.7.3 3 3 0 00-.9 2.2 5.2 5.2 0 001.1 2.8 12 12 0 004.6 4.1c1.7.7 2.4.8 3.2.7a2.7 2.7 0 001.8-1.3 2.2 2.2 0 00.2-1.3c-.1-.1-.3-.2-.5-.3z"/></svg>واتساب</a><a class="btn btn-line" href="tel:+{{ biz_phone }}">اتصال</a></div></div>
+    <div class="map reveal"><div><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 017 7c0 5.2-7 13-7 13S5 14.2 5 9a7 7 0 017-7zm0 9.5A2.5 2.5 0 1012 6a2.5 2.5 0 000 5.5z"/></svg><div class="disp" style="font-weight:700;color:var(--ink)">خريطة قوقل التفاعلية</div><small>تظهر هنا مع زر «الاتجاهات» في النسخة النهائية</small></div></div>
+  </div>
+</div></section>
+{% elif s.id == 'faq' and brief.faq %}
+<section id="faq"><div class="wrap" style="max-width:820px">
+  <div class="sh reveal"><div class="eyebrow"><i></i>{{ s.title }}</div><h2>{{ s.title }}</h2></div>
+  {% for f in brief.faq %}<details class="reveal"><summary>{{ f.q }}</summary><p>{{ f.a }}</p></details>{% endfor %}
+</div></section>
+{% endif %}
+{% endfor %}
+
+<section id="offer" class="offer"><div class="wrap box">
+  <div class="reveal"><div class="eyebrow"><i></i>عرضنا لكم</div><h2>{{ brief.offer_title }}</h2><p style="color:rgba(255,255,255,.8);font-size:17px;margin:0">هذه الصفحة نموذج أوّلي. النسخة النهائية تُبنى بهويتكم الكاملة وتُسلَّم خلال 48 ساعة، بدون أي مبلغ مقدّم.</p>
+    <ul class="pts">{% for pt in brief.offer_points %}<li><svg viewBox="0 0 24 24"><path d="M9 16.2l-3.5-3.5L4 14.2 9 19.2 20 8.2l-1.5-1.5z"/></svg>{{ pt }}</li>{% endfor %}</ul></div>
+  <div class="pricecard reveal"><div class="amt">{{ '{:,}'.format(price|int) }} <small>ر.س / شهر</small></div><p>شامل كل شيء · بدون مقدّم · إلغاء بإشعار شهر</p>
+    <button class="btn btn-p" onclick="wantStart()">أبغى أبدأ</button>
+    <div style="margin-top:10px;font-size:13px;color:var(--mut)">أو أخبرنا برأيك أولًا 👇</div></div>
+</div></section>
+
+<section id="ask" class="ask"><div class="wrap" style="max-width:900px">
+  <div class="askbox reveal" id="askbox">
+    <div class="sh" style="margin-bottom:26px"><div class="eyebrow"><i></i>30 ثانية فقط</div><h2 style="font-size:clamp(24px,3.5vw,32px)">ساعدنا نضبط الموقع على ذوقكم</h2><p>اضغطوا على الخيارات — تتغير الصفحة أمامكم مباشرة.</p></div>
+    <div class="q"><h3>أي نمط ألوان تفضّلون؟</h3><p>جرّبوا الضغط على كل نمط</p>
+      <div class="sw" id="sw"><button class="on" data-id="current" style="--c1:{{ brief.palette.primary }};--c2:{{ brief.palette.accent }}" onclick="pick(this,'{{ brief.palette.primary }}','{{ brief.palette.accent }}','{{ brief.palette.dark }}','{{ brief.palette.light }}')"><i></i>المقترح</button>
+      {% for pl in alt_palettes %}<button data-id="{{ pl.id }}" style="--c1:{{ pl.primary }};--c2:{{ pl.accent }}" onclick="pick(this,'{{ pl.primary }}','{{ pl.accent }}','{{ pl.dark }}','{{ pl.light }}')"><i></i>{{ pl.name }}</button>{% endfor %}</div></div>
+    <div class="q"><h3>ما الأهم بالنسبة لكم في الموقع؟</h3><p>اختاروا أكثر من خيار</p>
+      <div class="chips" id="pri">{% for c in ['حجز/طلب عبر واتساب','عرض الخدمات والأسعار','معرض صور احترافي','الظهور في بحث قوقل','نموذج طلب عرض سعر','ربط الإنستقرام','لغة إنجليزية إضافية'] %}<button onclick="this.classList.toggle('on')">{{ c }}</button>{% endfor %}</div></div>
+    <div class="q"><h3>متى تحبون نبدأ؟</h3>
+      <div class="chips" id="tim"><button data-v="this_week" onclick="one(this)">هذا الأسبوع</button><button data-v="this_month" onclick="one(this)">خلال شهر</button><button data-v="thinking" onclick="one(this)">أبغى أفكر</button><button data-v="not_interested" onclick="one(this)">غير مهتم حاليًا</button></div></div>
+    <div class="q"><h3>أي ملاحظة أو طلب خاص؟</h3><textarea id="notes" placeholder="مثال: أبغى المنيو بالصور، أو ألوان شعارنا الأزرق..."></textarea></div>
+    <button class="btn btn-p" style="width:100%" onclick="submitAnswers(false)">إرسال رأيي</button>
+  </div>
+</div></section>
+
+<footer><div class="wrap">أُعدّ هذا العرض بواسطة <b>{{ sender }}</b> · {{ brief.brand_name }} · جميع الحقوق محفوظة</div></footer>
+
+<div class="dock"><a class="btn btn-wa" href="https://wa.me/{{ wa_phone }}?text={{ wa_msg|urlencode }}">واتساب</a><a class="btn btn-p" href="#ask">رأيك بالعرض</a></div>
+<a class="btn btn-wa fab" href="https://wa.me/{{ wa_phone }}?text={{ wa_msg|urlencode }}"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 00-8.6 15.1L2 22l5.1-1.3A10 10 0 1012 2zm0 18.2a8.2 8.2 0 01-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1112 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 01-3.3-2.9c-.2-.4.3-.4.7-1.2.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 00-.7.3 3 3 0 00-.9 2.2 5.2 5.2 0 001.1 2.8 12 12 0 004.6 4.1c1.7.7 2.4.8 3.2.7a2.7 2.7 0 001.8-1.3 2.2 2.2 0 00.2-1.3c-.1-.1-.3-.2-.5-.3z"/></svg>تواصل الآن</a>
+
+<script>
+var TOKEN={{ token|tojson }}, WA={{ wa_phone|tojson }}, WAMSG={{ wa_msg|tojson }}, style="current";
+function pick(b,p,a,d,l){document.querySelectorAll('#sw button').forEach(function(x){x.classList.remove('on')});b.classList.add('on');style=b.dataset.id;var r=document.documentElement.style;r.setProperty('--p',p);r.setProperty('--a',a);r.setProperty('--d',d);r.setProperty('--l',l);}
+function one(b){document.querySelectorAll('#tim button').forEach(function(x){x.classList.remove('on')});b.classList.add('on');}
+function collect(){var t=document.querySelector('#tim button.on');return {style:style,priorities:[].map.call(document.querySelectorAll('#pri button.on'),function(x){return x.textContent}),timing:t?t.dataset.v:"",notes:document.getElementById('notes').value.slice(0,1000)}}
+function wantStart(){submitAnswers(true)}
+function submitAnswers(start){var body=collect();body.wants_start=!!start;
+  fetch('/api/public/proposal/'+TOKEN+'/answers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).catch(function(){});
+  var box=document.getElementById('askbox');box.innerHTML='<div class="done"><h3>'+(start?'ممتاز، نبدأ فورًا 🎉':'شكرًا لكم، وصلنا رأيكم')+'</h3><p>'+(start?'راسلونا الآن على واتساب لنستلم الشعار والصور، والموقع جاهز خلال 48 ساعة.':'سنضبط التصميم حسب اختياراتكم ونرسل لكم النسخة المحدّثة.')+'</p><a class="btn btn-wa" href="https://wa.me/'+WA+'?text='+encodeURIComponent(WAMSG)+'">تواصل عبر واتساب</a></div>';box.scrollIntoView({behavior:'smooth',block:'center'});}
+var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{threshold:.12});document.querySelectorAll('.reveal').forEach(function(el){io.observe(el)});
+</script>
+</body>
+</html>

@@ -3,7 +3,7 @@ import io
 from datetime import date, datetime, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy import or_, func
 from sqlalchemy.orm import Session
@@ -162,7 +162,7 @@ def add_activity(lead_id: int, data: ActivityIn, db: Session = Depends(get_db), 
 
 
 @router.post("/{lead_id}/send", response_model=SendOut)
-async def send_whatsapp(lead_id: int, data: SendIn, db: Session = Depends(get_db), user: User = Depends(current_user)):
+async def send_whatsapp(lead_id: int, data: SendIn, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
     lead = db.get(Lead, lead_id)
     if not lead:
         raise HTTPException(404, "Lead not found")
@@ -184,7 +184,7 @@ async def send_whatsapp(lead_id: int, data: SendIn, db: Session = Depends(get_db
         if not tpl:
             raise HTTPException(404, "Template not found")
         body = tpl.body
-    message = whatsapp.render(body, lead, _setting(db, "demo_url", settings.DEMO_URL), _setting(db, "sender_name", settings.SENDER_NAME))
+    message = whatsapp.render(body, lead, _setting(db, "demo_url", settings.DEMO_URL), _setting(db, "sender_name", settings.SENDER_NAME), base_url=(settings.PUBLIC_BASE_URL or str(request.base_url)).rstrip("/"))
 
     channel = "wa_link"
     if whatsapp.api_configured():

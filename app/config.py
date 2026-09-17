@@ -22,6 +22,14 @@ class Settings(BaseSettings):
     GOOGLE_PLACES_API_KEY: str = ""
     WHATSAPP_TOKEN: str = ""
     WHATSAPP_PHONE_ID: str = ""
+    WHATSAPP_VERIFY_TOKEN: str = ""  # any secret you choose; Meta sends it back on webhook verification
+    WHATSAPP_APP_SECRET: str = ""  # Meta app secret, used to verify X-Hub-Signature-256 on webhooks
+
+    # Designer agent (Claude). Leave the key empty to use the built-in sector presets.
+    ANTHROPIC_API_KEY: str = ""
+    DESIGN_MODEL: str = "claude-opus-5"
+    PUBLIC_BASE_URL: str = ""  # e.g. https://leads.bassir.net — used to build proposal links ({proposal})
+    UPLOAD_DIR: str = "uploads"
 
 
 settings = Settings()

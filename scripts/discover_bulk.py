@@ -30,7 +30,7 @@ from app.schemas import normalize_phone  # noqa: E402
 from app.services import places  # noqa: E402
 
 TARGETS = json.loads((ROOT / "data" / "targets.json").read_text(encoding="utf-8"))
-CSV_COLS = ["name", "phone", "city", "sector", "query", "district", "rating", "reviews", "website", "maps_url", "address", "notes"]
+CSV_COLS = ["name", "phone", "city", "sector", "query", "district", "rating", "reviews", "website", "maps_url", "address", "notes", "place_id"]
 
 
 def excluded(name: str) -> bool:
@@ -85,7 +85,7 @@ async def run(args) -> None:
                             "name": r["name"], "phone": phone, "city": city["name"], "sector": sec["sector"], "query": q,
                             "district": area if area != city["name"] else "", "rating": r.get("rating") or "", "reviews": r.get("reviews") or "",
                             "website": r.get("website") or "", "maps_url": r.get("maps_url") or "", "address": r.get("address") or "",
-                            "notes": f"places:{q}",
+                            "notes": f"places:{q}", "place_id": r.get("place_id", ""),
                         }
                         (with_site if row["website"] else no_site).append(row)
                     print(f"[{calls:>4} calls] {sec['sector']:<12} {q:<22} {area:<28} no-site={len(no_site):>5} with-site={len(with_site):>5}", file=sys.stderr)
@@ -122,7 +122,7 @@ def save_to_db(rows: list[dict]) -> None:
                 continue
             db.add(Lead(name=r["name"], phone=r["phone"], city=r["city"], sector=r["sector"], website=r["website"], maps_url=r["maps_url"],
                         rating=float(r["rating"]) if r["rating"] else None, reviews=int(r["reviews"]) if r["reviews"] else None,
-                        source="places", notes=r["notes"], priority=1 if TARGETS_TIER.get(r["sector"]) == 1 else 2))
+                        source="places", notes=r["notes"], place_id=r.get("place_id", ""), priority=1 if TARGETS_TIER.get(r["sector"]) == 1 else 2))
             existing.add(r["phone"]); added += 1
         db.commit()
     print(f"inserted {added} new leads into the database")

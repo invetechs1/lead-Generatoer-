@@ -10,6 +10,9 @@ Full-stack system for the "website-as-a-subscription" campaign (SAR 1,000/month)
 | Outreach | Template engine `{name} {city} {activity} {demo} {sender}`, one-tap WhatsApp (wa.me) with automatic activity log, status → contacted, follow-up scheduling, **daily send cap** (anti-ban), do-not-contact guard, optional WhatsApp Cloud API |
 | Discover | Google Places (New) Text Search → businesses **without a website** with a phone number → save as leads (works once `GOOGLE_PLACES_API_KEY` is set). **Bulk:** `scripts/discover_bulk.py` runs the whole city × sector matrix in `data/targets.json` (district-level, budgeted against the 5,000 free calls/month) and writes import-ready CSVs |
 | Website audit | `scripts/audit_sites.py` / **🔍 فحص الموقع** score an existing site 0–100 (HTTPS, mobile, speed, Arabic, parked/"coming soon", WhatsApp button) and fill the `{issues}` placeholder for the "your website is weak" pitch; filter leads by `has_website` / `max_score` |
+| Designer agent | **🎨 عرض مصمم** per lead: upload the business's photos/logo or pull its own Google Maps photos, add what you learned, and a senior-designer agent on the Claude API (`app/services/designer.py`, strict JSON brief: palette from the photos, fonts, headline, services with prices, sections, offer) renders a premium proposal page at `/p/<token>`. No API key → curated sector presets. Any field is hand-editable afterwards |
+| Client feedback | The proposal page has **tap-to-answer questions** (style swatches that re-theme the page live, what matters most, when to start, notes, "أبغى أبدأ"). Answers land in the lead's timeline, move the pipeline (negotiating / replied / lost) and set the follow-up. Views are counted ("he opened it 3 times") |
+| WhatsApp buttons | Cloud API reply-buttons / list messages (`POST /api/whatsapp/leads/{id}/buttons`), marketing-template payloads, and a **webhook** (`/api/whatsapp/webhook`, signature-verified) that logs replies, maps button ids (`start*`, `later*`, `no*`, `stop*`) to pipeline moves and honours opt-outs |
 | Sample sites | `/demo/restaurant` and `/demo/business` — professional RTL sample websites, **personalised per lead** (`?n=name&c=city&p=phone&s=sector`); `{demo}` in templates becomes the lead's own link automatically |
 | Pipeline | new → contacted → replied → demo_sent → negotiating → won / lost / do_not_contact, full activity timeline (WhatsApp, calls, notes, status changes) |
 | Clients & Billing | Convert lead → client, monthly invoices (15% VAT), idempotent `run-billing`, overdue detection, mark paid, MRR/ARR |
@@ -58,7 +61,7 @@ Backups land in `./backups/` daily. Restore: `gunzip -c backups/bassir-YYYY-MM-D
 
 ## Tests
 ```bash
-python -m pytest -q tests     # 17 tests: auth, RBAC, phone normalization, CSV import, send + cap, billing, dashboard, site audit, demo pages
+python -m pytest -q tests     # 22 tests: auth, RBAC, phone normalization, CSV import, send + cap, billing, dashboard, site audit, demo pages
 ```
 
 ## Daily workflow
@@ -72,7 +75,16 @@ python -m pytest -q tests     # 17 tests: auth, RBAC, phone normalization, CSV i
 `name,phone,city,sector,instagram,website,maps_url,notes` — Arabic headers (الاسم, الجوال, المدينة, النشاط, ملاحظات) also accepted. Phones in any format (05…, +966…, 00966…).
 
 ## Template placeholders
-`{name} {city} {activity}/{sector} {website} {issues} {demo} {sender}` — `{issues}` is the bullet list from the site audit, `{demo}` is the personalised sample-site link.
+`{name} {city} {activity}/{sector} {website} {issues} {demo} {proposal} {sender}` — `{issues}` is the bullet list from the site audit, `{proposal}` is the designed proposal link (`{demo}` also resolves to it once a proposal exists, otherwise to the personalised sample site).
+
+## Proposal workflow (what makes a client say yes)
+1. Open the lead → **🎨 عرض مصمم** → upload their logo/photos or **جلب صورهم من قوقل** (their own Maps photos).
+2. Add one line of notes (logo colours, specialty, an offer you saw) → **تصميم العرض الآن** (≈ 30–60 s with the API key).
+3. Send the link with the first-message template (`{proposal}`). The page is `noindex`, personal, and tracks opens.
+4. When the client taps answers, the lead jumps to *negotiating* with today's follow-up; the timeline shows exactly what they picked.
+
+## WhatsApp Cloud API (buttons inside WhatsApp)
+Reply buttons and lists only exist on the Cloud API (Meta Business Platform), not in the WhatsApp Business app. Setup: Meta Business → WhatsApp → add a phone number → `WHATSAPP_TOKEN` + `WHATSAPP_PHONE_ID`; Webhooks → callback `https://YOUR-DOMAIN/api/whatsapp/webhook`, verify token = `WHATSAPP_VERIFY_TOKEN`, subscribe to `messages`; set `WHATSAPP_APP_SECRET` so signatures are verified. Cold messages must be **approved Marketing templates** (create one with quick-reply buttons `start_now` / `later` / `no_thanks` and a URL button carrying the proposal token — `services.whatsapp.template_payload`). Free-form buttons (`/buttons`) work inside the 24-hour window after the client replies.
 
 ## Roadmap hooks (already wired, just add keys in .env)
 - `GOOGLE_PLACES_API_KEY` → Discover button turns on.

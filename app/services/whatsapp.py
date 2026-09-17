@@ -1,9 +1,13 @@
 """WhatsApp delivery: wa.me deep link by default; Cloud API when configured."""
+import hashlib
+import hmac
 from urllib.parse import quote, urlencode
 
 import httpx
 
 from ..config import settings
+
+GRAPH = "https://graph.facebook.com/v20.0"
 
 
 def personal_demo(demo_url: str, lead) -> str:
@@ -24,10 +28,20 @@ def issues_text(lead) -> str:
     return "\n".join(f"• {line.strip()}" for line in raw.splitlines() if line.strip())
 
 
-def render(body: str, lead, demo_url: str = "", sender: str = "") -> str:
-    demo = personal_demo(demo_url or settings.DEMO_URL or "", lead)
+def proposal_url(lead, base_url: str = "") -> str:
+    """Public link to the lead's designed proposal page, or '' when none exists yet."""
+    prop = getattr(lead, "proposal", None)
+    if not prop:
+        return ""
+    base = (base_url or settings.PUBLIC_BASE_URL or "").rstrip("/")
+    return f"{base}/p/{prop.token}"
+
+
+def render(body: str, lead, demo_url: str = "", sender: str = "", base_url: str = "") -> str:
+    demo = proposal_url(lead, base_url) or personal_demo(demo_url or settings.DEMO_URL or "", lead)
     return (
         body.replace("{name}", lead.name or "")
+        .replace("{proposal}", proposal_url(lead, base_url))
         .replace("{city}", lead.city or "")
         .replace("{sector}", lead.sector or "")
         .replace("{activity}", lead.sector or "")
@@ -48,9 +62,88 @@ def api_configured() -> bool:
 
 async def send_via_api(phone: str, message: str) -> dict:
     """Send a free-form text via WhatsApp Cloud API (requires an open 24h window or approved template)."""
-    url = f"https://graph.facebook.com/v20.0/{settings.WHATSAPP_PHONE_ID}/messages"
+    url = f"{GRAPH}/{settings.WHATSAPP_PHONE_ID}/messages"
     payload = {"messaging_product": "whatsapp", "to": phone, "type": "text", "text": {"body": message}}
     async with httpx.AsyncClient(timeout=20) as client:
         r = await client.post(url, json=payload, headers={"Authorization": f"Bearer {settings.WHATSAPP_TOKEN}"})
         r.raise_for_status()
         return r.json()
+
+
+# ---------------- Cloud API: interactive messages + webhook ----------------
+
+def interactive_buttons_payload(phone: str, body: str, buttons: list[tuple[str, str]], header: str = "", footer: str = "") -> dict:
+    """Reply-button message (max 3 buttons, titles <= 20 chars). Session message: needs an open 24h window."""
+    if not 1 <= len(buttons) <= 3:
+        raise ValueError("WhatsApp reply buttons: 1-3 buttons")
+    inter: dict = {"type": "button", "body": {"text": body[:1024]}, "action": {"buttons": [{"type": "reply", "reply": {"id": bid[:256], "title": title[:20]}} for bid, title in buttons]}}
+    if header:
+        inter["header"] = {"type": "text", "text": header[:60]}
+    if footer:
+        inter["footer"] = {"text": footer[:60]}
+    return {"messaging_product": "whatsapp", "recipient_type": "individual", "to": phone, "type": "interactive", "interactive": inter}
+
+
+def interactive_list_payload(phone: str, body: str, button_label: str, rows: list[tuple[str, str, str]], header: str = "") -> dict:
+    """List message (up to 10 rows). rows = [(id, title<=24, description<=72)]. Session message."""
+    if not 1 <= len(rows) <= 10:
+        raise ValueError("WhatsApp list: 1-10 rows")
+    inter: dict = {"type": "list", "body": {"text": body[:1024]}, "action": {"button": button_label[:20], "sections": [{"title": header[:24] or "الخيارات", "rows": [{"id": rid[:200], "title": t[:24], "description": d[:72]} for rid, t, d in rows]}]}}
+    return {"messaging_product": "whatsapp", "recipient_type": "individual", "to": phone, "type": "interactive", "interactive": inter}
+
+
+def template_payload(phone: str, template_name: str, lang: str = "ar", body_params: list[str] | None = None, button_url_param: str = "") -> dict:
+    """Approved Marketing template (the only way to open a cold conversation via the Cloud API). Quick-reply buttons
+    are defined on the template in Meta Business Manager; the URL button can carry the proposal token."""
+    comps: list[dict] = []
+    if body_params:
+        comps.append({"type": "body", "parameters": [{"type": "text", "text": p} for p in body_params]})
+    if button_url_param:
+        comps.append({"type": "button", "sub_type": "url", "index": "0", "parameters": [{"type": "text", "text": button_url_param}]})
+    return {"messaging_product": "whatsapp", "to": phone, "type": "template", "template": {"name": template_name, "language": {"code": lang}, "components": comps}}
+
+
+async def send_payload(payload: dict) -> dict:
+    url = f"{GRAPH}/{settings.WHATSAPP_PHONE_ID}/messages"
+    async with httpx.AsyncClient(timeout=20) as client:
+        r = await client.post(url, json=payload, headers={"Authorization": f"Bearer {settings.WHATSAPP_TOKEN}"})
+        r.raise_for_status()
+        return r.json()
+
+
+def verify_signature(raw_body: bytes, signature_header: str) -> bool:
+    """X-Hub-Signature-256: sha256=<hmac>. Skipped (returns True) when WHATSAPP_APP_SECRET is not configured."""
+    if not settings.WHATSAPP_APP_SECRET:
+        return True
+    if not signature_header or not signature_header.startswith("sha256="):
+        return False
+    expected = hmac.new(settings.WHATSAPP_APP_SECRET.encode(), raw_body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, signature_header[7:])
+
+
+def parse_webhook(data: dict) -> list[dict]:
+    """Flatten a Cloud API webhook into events: {phone, name, kind: text|button|list|status, text, reply_id, status, wamid}."""
+    out: list[dict] = []
+    for entry in data.get("entry", []) or []:
+        for ch in entry.get("changes", []) or []:
+            v = ch.get("value", {}) or {}
+            names = {c.get("wa_id"): (c.get("profile") or {}).get("name", "") for c in v.get("contacts", []) or []}
+            for m in v.get("messages", []) or []:
+                ev = {"phone": m.get("from", ""), "name": names.get(m.get("from", ""), ""), "wamid": m.get("id", ""), "kind": "text", "text": "", "reply_id": ""}
+                t = m.get("type")
+                if t == "text":
+                    ev["text"] = (m.get("text") or {}).get("body", "")
+                elif t == "interactive":
+                    inter = m.get("interactive") or {}
+                    if inter.get("type") == "button_reply":
+                        ev["kind"] = "button"; ev["reply_id"] = inter["button_reply"].get("id", ""); ev["text"] = inter["button_reply"].get("title", "")
+                    elif inter.get("type") == "list_reply":
+                        ev["kind"] = "list"; ev["reply_id"] = inter["list_reply"].get("id", ""); ev["text"] = inter["list_reply"].get("title", "")
+                elif t == "button":  # quick-reply on a template
+                    ev["kind"] = "button"; ev["reply_id"] = (m.get("button") or {}).get("payload", ""); ev["text"] = (m.get("button") or {}).get("text", "")
+                else:
+                    ev["text"] = f"[{t}]"
+                out.append(ev)
+            for st in v.get("statuses", []) or []:
+                out.append({"phone": st.get("recipient_id", ""), "name": "", "wamid": st.get("id", ""), "kind": "status", "text": st.get("status", ""), "reply_id": "", "status": st.get("status", "")})
+    return out
