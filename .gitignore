@@ -6,3 +6,6 @@ __pycache__/
 backups/
 data/raw/
 uploads/
+e2e_out/
+e2e_photos/
+e2e.db

@@ -30,7 +30,7 @@ label{display:block;font-size:.85rem;font-weight:500;color:var(--mist);margin:10
 .tabs a.active{color:var(--night);font-weight:600;background:#EEF0F2}
 .tabs a i{font-style:normal;font-size:1.2rem;line-height:1}
 @media(min-width:900px){
-  .shell{grid-template-rows:auto 1fr}
+  .shell{grid-template-rows:auto auto 1fr}
   .tabs{position:sticky;top:52px;bottom:auto;justify-content:flex-start;gap:4px;padding:6px 16px;border-top:0;border-bottom:1px solid var(--line)}
   .tabs a{flex-direction:row;gap:8px;font-size:.9rem}
   .main{padding-bottom:40px}
