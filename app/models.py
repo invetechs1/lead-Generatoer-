@@ -68,10 +68,28 @@ class Proposal(Base):
     last_viewed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     answered_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     source: Mapped[str] = mapped_column(String(20), default="preset")  # preset | claude
+    # ---- live site (after the client says yes) ----
+    published: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    slug: Mapped[str] = mapped_column(String(80), default="", index=True)  # /s/<slug>
+    custom_domain: Mapped[str] = mapped_column(String(200), default="", index=True)  # served at / when Host matches
+    live: Mapped[str] = mapped_column(Text, default="{}")  # JSON: hours, address, maps_url, instagram, phone, email
+    published_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=now, onupdate=now)
 
     lead = relationship("Lead", back_populates="proposal")
+    events = relationship("SiteEvent", back_populates="proposal", cascade="all, delete-orphan")
+
+
+class SiteEvent(Base):
+    """One visitor action on a live site: view, WhatsApp click, call click, map click. Feeds the monthly value report."""
+    __tablename__ = "site_events"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    proposal_id: Mapped[int] = mapped_column(ForeignKey("proposals.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(20), index=True)  # view | wa | call | map | form
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now, index=True)
+
+    proposal = relationship("Proposal", back_populates="events")
 
 
 class Template(Base):

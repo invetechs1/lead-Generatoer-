@@ -37,11 +37,37 @@ def proposal_url(lead, base_url: str = "") -> str:
     return f"{base}/p/{prop.token}"
 
 
+def site_url(lead, base_url: str = "") -> str:
+    prop = getattr(lead, "proposal", None)
+    if not prop or not getattr(prop, "published", False):
+        return ""
+    if prop.custom_domain:
+        return f"https://{prop.custom_domain}"
+    base = (base_url or settings.PUBLIC_BASE_URL or "").rstrip("/")
+    return f"{base}/s/{prop.slug}"
+
+
+def stats_text(lead) -> str:
+    """This month's live-site numbers for the {stats} placeholder (empty when not published)."""
+    prop = getattr(lead, "proposal", None)
+    if not prop or not getattr(prop, "published", False):
+        return ""
+    from datetime import date, datetime
+    start = datetime.combine(date.today().replace(day=1), datetime.min.time())
+    counts = {"view": 0, "wa": 0, "call": 0, "map": 0, "form": 0}
+    for ev in getattr(prop, "events", []) or []:
+        if ev.created_at >= start and ev.kind in counts:
+            counts[ev.kind] += 1
+    return f"{counts['view']} زيارة · {counts['wa']} ضغطة واتساب · {counts['call']} اتصال · {counts['map']} فتح للخريطة"
+
+
 def render(body: str, lead, demo_url: str = "", sender: str = "", base_url: str = "") -> str:
     demo = proposal_url(lead, base_url) or personal_demo(demo_url or settings.DEMO_URL or "", lead)
     return (
         body.replace("{name}", lead.name or "")
         .replace("{proposal}", proposal_url(lead, base_url))
+        .replace("{site}", site_url(lead, base_url))
+        .replace("{stats}", stats_text(lead))
         .replace("{city}", lead.city or "")
         .replace("{sector}", lead.sector or "")
         .replace("{activity}", lead.sector or "")

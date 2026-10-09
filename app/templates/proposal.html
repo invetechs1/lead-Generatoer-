@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ brief.brand_name }} — {{ brief.tagline }}</title>
 <meta name="description" content="{{ brief.subheadline }}">
-<meta name="robots" content="noindex">
+{% if mode == "live" %}<meta name="robots" content="index,follow">{% else %}<meta name="robots" content="noindex">{% endif %}
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family={{ brief.font_display|replace(' ', '+') }}:wght@400;600;700;800&family={{ brief.font_body|replace(' ', '+') }}:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -87,14 +87,16 @@ footer{padding:30px 0 100px;color:var(--mut);font-size:14px;text-align:center;bo
 </style>
 </head>
 <body>
-{% set wa_msg = "السلام عليكم، شفت عرض موقع " ~ brief.brand_name ~ " وأبغى أبدأ" %}
+{% set live_mode = (mode == "live") %}
+{% set wa_msg = ("السلام عليكم، جايكم من موقع " ~ brief.brand_name) if live_mode else ("السلام عليكم، شفت عرض موقع " ~ brief.brand_name ~ " وأبغى أبدأ") %}
+{% set wa_phone = biz_phone if live_mode else wa_phone %}
 {% set hero_src = photos[brief.hero_photo] if photos and brief.hero_photo is not none and brief.hero_photo >= 0 and brief.hero_photo < photos|length else "" %}
-<div class="ribbon">عرض تصميم أوّلي مُعد خصيصًا لـ <b>{{ brief.brand_name }}</b> · الموقع النهائي بشعاركم وصوركم ونطاقكم الخاص خلال <b>48 ساعة</b> من الموافقة</div>
+{% if not live_mode %}<div class="ribbon">عرض تصميم أوّلي مُعد خصيصًا لـ <b>{{ brief.brand_name }}</b> · الموقع النهائي بشعاركم وصوركم ونطاقكم الخاص خلال <b>48 ساعة</b> من الموافقة</div>{% endif %}
 
 <header class="nav"><div class="wrap">
   <div class="brand"><div class="mark">{{ brief.brand_name[0] }}</div><div><b>{{ brief.brand_name }}</b><small>{{ brief.tagline }}</small></div></div>
-  <ul>{% for s in brief.sections %}{% if s.id != 'offer' %}<li><a href="#{{ s.id }}">{{ s.title }}</a></li>{% endif %}{% endfor %}<li><a href="#ask">رأيك</a></li></ul>
-  <a class="btn btn-p" href="#offer">{{ brief.cta_primary }}</a>
+  <ul>{% for s in brief.sections %}{% if s.id != 'offer' %}<li><a href="#{{ s.id }}">{{ s.title }}</a></li>{% endif %}{% endfor %}{% if not live_mode %}<li><a href="#ask">رأيك</a></li>{% endif %}</ul>
+  <a class="btn btn-p" href="{{ 'https://wa.me/' ~ biz_phone ~ '?text=' ~ (wa_msg|urlencode) if live_mode else '#offer' }}" {% if live_mode %}data-ev="wa"{% endif %}>{{ brief.cta_primary }}</a>
 </div></header>
 
 <section class="hero" style="padding:0">
@@ -103,7 +105,7 @@ footer{padding:30px 0 100px;color:var(--mut);font-size:14px;text-align:center;bo
     <div class="eyebrow"><i></i>{{ lead.sector or brief.kind }} · {{ lead.city or 'السعودية' }}</div>
     <h1>{{ brief.headline }}</h1>
     <p>{{ brief.subheadline }}</p>
-    <div class="cta"><a class="btn btn-a" href="#offer">{{ brief.cta_primary }}</a><a class="btn btn-o" href="#{{ brief.sections[0].id }}">{{ brief.cta_secondary }}</a></div>
+    <div class="cta"><a class="btn btn-a" href="{{ 'https://wa.me/' ~ biz_phone ~ '?text=' ~ (wa_msg|urlencode) if live_mode else '#offer' }}" {% if live_mode %}data-ev="wa"{% endif %}>{{ brief.cta_primary }}</a><a class="btn btn-o" href="#{{ brief.sections[0].id }}">{{ brief.cta_secondary }}</a></div>
     <div class="trust">
       {% if lead.rating %}<div><svg viewBox="0 0 24 24"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg><b>{{ '%.1f'|format(lead.rating) }}</b> على قوقل{% if lead.reviews %} · {{ lead.reviews }} تقييم{% endif %}</div>{% endif %}
       <div><svg viewBox="0 0 24 24"><path d="M9 16.2l-3.5-3.5L4 14.2 9 19.2 20 8.2l-1.5-1.5z"/></svg>رد خلال دقائق عبر واتساب</div>
@@ -146,10 +148,11 @@ footer{padding:30px 0 100px;color:var(--mut);font-size:14px;text-align:center;bo
 <section id="hours" class="alt"><div class="wrap">
   <div class="sh reveal"><div class="eyebrow"><i></i>{{ s.title }}</div><h2>{{ s.title }}</h2></div>
   <div class="hours">
-    <div class="card reveal"><ul><li><span>السبت – الخميس</span><b>10:00 ص – 11:00 م</b></li><li><span>الجمعة</span><b>4:00 م – 11:00 م</b></li></ul>
-      <p style="margin:0 0 6px;color:var(--mut)">📍 {{ lead.city or 'السعودية' }} — يُربط بموقعكم الفعلي على خرائط قوقل</p>
-      <div class="cta" style="margin-top:18px"><a class="btn btn-wa" href="https://wa.me/{{ biz_phone }}"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 00-8.6 15.1L2 22l5.1-1.3A10 10 0 1012 2zm0 18.2a8.2 8.2 0 01-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1112 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 01-3.3-2.9c-.2-.4.3-.4.7-1.2.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 00-.7.3 3 3 0 00-.9 2.2 5.2 5.2 0 001.1 2.8 12 12 0 004.6 4.1c1.7.7 2.4.8 3.2.7a2.7 2.7 0 001.8-1.3 2.2 2.2 0 00.2-1.3c-.1-.1-.3-.2-.5-.3z"/></svg>واتساب</a><a class="btn btn-line" href="tel:+{{ biz_phone }}">اتصال</a></div></div>
-    <div class="map reveal"><div><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 017 7c0 5.2-7 13-7 13S5 14.2 5 9a7 7 0 017-7zm0 9.5A2.5 2.5 0 1012 6a2.5 2.5 0 000 5.5z"/></svg><div class="disp" style="font-weight:700;color:var(--ink)">خريطة قوقل التفاعلية</div><small>تظهر هنا مع زر «الاتجاهات» في النسخة النهائية</small></div></div>
+    <div class="card reveal"><ul>{% for h in (live.hours or [["السبت – الخميس", "10:00 ص – 11:00 م"], ["الجمعة", "4:00 م – 11:00 م"]]) %}<li><span>{{ h[0] }}</span><b>{{ h[1] }}</b></li>{% endfor %}</ul>
+      <p style="margin:0 0 6px;color:var(--mut)">📍 {{ live.address or (lead.city or 'السعودية') }}{% if not live_mode %} — يُربط بموقعكم الفعلي على خرائط قوقل{% endif %}</p>
+      <div class="cta" style="margin-top:18px"><a class="btn btn-wa" data-ev="wa" href="https://wa.me/{{ biz_phone }}?text={{ wa_msg|urlencode }}"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 00-8.6 15.1L2 22l5.1-1.3A10 10 0 1012 2zm0 18.2a8.2 8.2 0 01-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1112 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 01-3.3-2.9c-.2-.4.3-.4.7-1.2.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 00-.7.3 3 3 0 00-.9 2.2 5.2 5.2 0 001.1 2.8 12 12 0 004.6 4.1c1.7.7 2.4.8 3.2.7a2.7 2.7 0 001.8-1.3 2.2 2.2 0 00.2-1.3c-.1-.1-.3-.2-.5-.3z"/></svg>واتساب</a><a class="btn btn-line" data-ev="call" href="tel:+{{ biz_phone }}">اتصال</a>{% if live.instagram %}<a class="btn btn-line" target="_blank" rel="noopener" href="https://instagram.com/{{ live.instagram|replace('@','') }}">إنستقرام</a>{% endif %}</div></div>
+    {% if live_mode and (live.maps_url or lead.maps_url) %}<a class="map reveal" data-ev="map" target="_blank" rel="noopener" href="{{ live.maps_url or lead.maps_url }}"><div><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 017 7c0 5.2-7 13-7 13S5 14.2 5 9a7 7 0 017-7zm0 9.5A2.5 2.5 0 1012 6a2.5 2.5 0 000 5.5z"/></svg><div class="disp" style="font-weight:700;color:var(--ink)">افتح الموقع على خرائط قوقل</div><small>اضغط للاتجاهات</small></div></a>
+    {% else %}<div class="map reveal"><div><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 017 7c0 5.2-7 13-7 13S5 14.2 5 9a7 7 0 017-7zm0 9.5A2.5 2.5 0 1012 6a2.5 2.5 0 000 5.5z"/></svg><div class="disp" style="font-weight:700;color:var(--ink)">خريطة قوقل التفاعلية</div><small>تظهر هنا مع زر «الاتجاهات» في النسخة النهائية</small></div></div>{% endif %}
   </div>
 </div></section>
 {% elif s.id == 'faq' and brief.faq %}
@@ -160,7 +163,7 @@ footer{padding:30px 0 100px;color:var(--mut);font-size:14px;text-align:center;bo
 {% endif %}
 {% endfor %}
 
-<section id="offer" class="offer"><div class="wrap box">
+{% if not live_mode %}<section id="offer" class="offer"><div class="wrap box">
   <div class="reveal"><div class="eyebrow"><i></i>عرضنا لكم</div><h2>{{ brief.offer_title }}</h2><p style="color:rgba(255,255,255,.8);font-size:17px;margin:0">هذه الصفحة نموذج أوّلي. النسخة النهائية تُبنى بهويتكم الكاملة وتُسلَّم خلال 48 ساعة، بدون أي مبلغ مقدّم.</p>
     <ul class="pts">{% for pt in brief.offer_points %}<li><svg viewBox="0 0 24 24"><path d="M9 16.2l-3.5-3.5L4 14.2 9 19.2 20 8.2l-1.5-1.5z"/></svg>{{ pt }}</li>{% endfor %}</ul></div>
   <div class="pricecard reveal"><div class="amt">{{ '{:,}'.format(price|int) }} <small>ر.س / شهر</small></div><p>شامل كل شيء · بدون مقدّم · إلغاء بإشعار شهر</p>
@@ -181,15 +184,16 @@ footer{padding:30px 0 100px;color:var(--mut);font-size:14px;text-align:center;bo
     <div class="q"><h3>أي ملاحظة أو طلب خاص؟</h3><textarea id="notes" placeholder="مثال: أبغى المنيو بالصور، أو ألوان شعارنا الأزرق..."></textarea></div>
     <button class="btn btn-p" style="width:100%" onclick="submitAnswers(false)">إرسال رأيي</button>
   </div>
-</div></section>
+</div></section>{% endif %}
 
-<footer><div class="wrap">أُعدّ هذا العرض بواسطة <b>{{ sender }}</b> · {{ brief.brand_name }} · جميع الحقوق محفوظة</div></footer>
+<footer><div class="wrap">{% if live_mode %}© {{ brief.brand_name }} · جميع الحقوق محفوظة · تصميم واستضافة <b>{{ sender }}</b>{% else %}أُعدّ هذا العرض بواسطة <b>{{ sender }}</b> · {{ brief.brand_name }} · جميع الحقوق محفوظة{% endif %}</div></footer>
 
-<div class="dock"><a class="btn btn-wa" href="https://wa.me/{{ wa_phone }}?text={{ wa_msg|urlencode }}">واتساب</a><a class="btn btn-p" href="#ask">رأيك بالعرض</a></div>
-<a class="btn btn-wa fab" href="https://wa.me/{{ wa_phone }}?text={{ wa_msg|urlencode }}"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 00-8.6 15.1L2 22l5.1-1.3A10 10 0 1012 2zm0 18.2a8.2 8.2 0 01-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1112 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 01-3.3-2.9c-.2-.4.3-.4.7-1.2.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 00-.7.3 3 3 0 00-.9 2.2 5.2 5.2 0 001.1 2.8 12 12 0 004.6 4.1c1.7.7 2.4.8 3.2.7a2.7 2.7 0 001.8-1.3 2.2 2.2 0 00.2-1.3c-.1-.1-.3-.2-.5-.3z"/></svg>تواصل الآن</a>
+<div class="dock"><a class="btn btn-wa" data-ev="wa" href="https://wa.me/{{ wa_phone }}?text={{ wa_msg|urlencode }}">واتساب</a>{% if live_mode %}<a class="btn btn-p" data-ev="call" href="tel:+{{ biz_phone }}">اتصال</a>{% else %}<a class="btn btn-p" href="#ask">رأيك بالعرض</a>{% endif %}</div>
+<a class="btn btn-wa fab" data-ev="wa" href="https://wa.me/{{ wa_phone }}?text={{ wa_msg|urlencode }}"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 00-8.6 15.1L2 22l5.1-1.3A10 10 0 1012 2zm0 18.2a8.2 8.2 0 01-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1112 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 01-3.3-2.9c-.2-.4.3-.4.7-1.2.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 00-.7.3 3 3 0 00-.9 2.2 5.2 5.2 0 001.1 2.8 12 12 0 004.6 4.1c1.7.7 2.4.8 3.2.7a2.7 2.7 0 001.8-1.3 2.2 2.2 0 00.2-1.3c-.1-.1-.3-.2-.5-.3z"/></svg>تواصل الآن</a>
 
 <script>
-var TOKEN={{ token|tojson }}, WA={{ wa_phone|tojson }}, WAMSG={{ wa_msg|tojson }}, style="current";
+var TOKEN={{ token|tojson }}, WA={{ wa_phone|tojson }}, WAMSG={{ wa_msg|tojson }}, style="current", LIVE={{ live_mode|tojson }}, SLUG={{ (slug or "")|tojson }};
+if(LIVE&&SLUG){document.querySelectorAll('[data-ev]').forEach(function(a){a.addEventListener('click',function(){try{navigator.sendBeacon('/api/public/site/'+SLUG+'/event?kind='+a.dataset.ev)}catch(e){}})});}
 function pick(b,p,a,d,l){document.querySelectorAll('#sw button').forEach(function(x){x.classList.remove('on')});b.classList.add('on');style=b.dataset.id;var r=document.documentElement.style;r.setProperty('--p',p);r.setProperty('--a',a);r.setProperty('--d',d);r.setProperty('--l',l);}
 function one(b){document.querySelectorAll('#tim button').forEach(function(x){x.classList.remove('on')});b.classList.add('on');}
 function collect(){var t=document.querySelector('#tim button.on');return {style:style,priorities:[].map.call(document.querySelectorAll('#pri button.on'),function(x){return x.textContent}),timing:t?t.dataset.v:"",notes:document.getElementById('notes').value.slice(0,1000)}}

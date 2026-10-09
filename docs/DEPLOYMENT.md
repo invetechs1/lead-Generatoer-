@@ -205,6 +205,22 @@ Button-id conventions understood by the webhook: `start*`/`yes*` → negotiating
 
 ---
 
+## 8b. Client websites on their own domains
+
+A published proposal is served at `https://leads.example.com/s/<slug>` immediately. To serve it on the client's own domain (e.g. `baitalmandi.com`):
+
+1. In the lead's proposal drawer set **نطاق العميل** = `baitalmandi.com` and publish.
+2. Client's DNS: `A` record `@` → server IP (and `www` → same, or CNAME to `@`).
+3. Nginx must accept that host. Edit `nginx/nginx.conf`: change `server_name leads.example.com;` to `server_name leads.example.com baitalmandi.com www.baitalmandi.com;` in **both** the 80 and 443 blocks (or use `server_name _;` on the 80 block to accept any domain and redirect).
+4. Certificate for the new domain (repeat per client domain, or add `-d` flags):
+   ```bash
+   docker run --rm -v bassir-leads_certs:/etc/letsencrypt -v bassir-leads_certs-www:/var/www/certbot certbot/certbot certonly --webroot -w /var/www/certbot -d baitalmandi.com -d www.baitalmandi.com --agree-tos -m you@example.com --non-interactive
+   ```
+   then add a second `server { listen 443 ssl http2; server_name baitalmandi.com www.baitalmandi.com; ssl_certificate /etc/letsencrypt/live/baitalmandi.com/fullchain.pem; ssl_certificate_key /etc/letsencrypt/live/baitalmandi.com/privkey.pem; location / { proxy_pass http://api:8000; proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto https; } }` block and `docker compose restart nginx`.
+5. The app routes by the `Host` header, so no app restart is needed. Verify: `curl -s https://baitalmandi.com | grep -c data-ev` → a number > 0.
+
+> With more than ~10 client domains, switch Nginx to a wildcard-free automatic setup (Caddy or nginx-proxy + acme-companion) so certificates are issued on demand. Not needed at the start.
+
 ## 9. Building the lead list on the server
 
 ```bash
@@ -224,10 +240,7 @@ cd ~/bassir-leads && git pull
 docker compose up -d --build
 docker compose logs --tail=50 api
 ```
-New tables are created automatically. **New columns on existing tables are not** (there is no migration tool yet). If a release adds columns to an existing table, run the SQL shown in that release's notes, e.g.:
-```bash
-docker compose exec db psql -U bassir bassir -c "ALTER TABLE leads ADD COLUMN IF NOT EXISTS place_id VARCHAR(120) DEFAULT '';"
-```
+New tables **and new columns** are created automatically on startup (`database.ensure_columns` adds missing columns with their defaults; it never drops or changes existing ones). Watch the first lines of `docker compose logs api` after an update: `schema: added columns ...`.
 
 **Backups** — `./backups/bassir-YYYY-MM-DD.sql.gz` daily; copy them off-server (rclone/S3/cron scp). Uploaded photos live in the `uploads` Docker volume — include it in off-server backups:
 ```bash

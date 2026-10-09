@@ -162,7 +162,8 @@
 
   async function openLead(id) {
     const [lead, acts] = await Promise.all([api(`/api/leads/${id}`), api(`/api/leads/${id}/activities`)]);
-    try { lead._proposal_url = (await api(`/api/leads/${id}/proposal`)).url; } catch (e) { lead._proposal_url = ""; }
+    lead._proposal_url = ""; lead._site_url = ""; lead._stats = "";
+    try { const pr = await api(`/api/leads/${id}/proposal`); lead._proposal_url = pr.url; if (pr.published) { lead._site_url = pr.site_url; const m = (await api(`/api/leads/${id}/site/stats`)).this_month; lead._stats = `${m.view} زيارة · ${m.wa} ضغطة واتساب · ${m.call} اتصال · ${m.map} فتح للخريطة`; } } catch (e) { /* no proposal */ }
     const tpls = S.templates.filter((t) => t.is_active);
     const d = drawer(`<h3>${esc(lead.name)}</h3><div class="hint ltr" style="text-align:right">+${lead.phone} ${lead.city ? " · " + esc(lead.city) : ""} ${lead.sector ? " · " + esc(lead.sector) : ""}</div>
       <div class="actions">
@@ -190,7 +191,7 @@
       <div class="card"><h2>ملاحظة / مكالمة</h2><div class="row row-2"><select id="ak"><option value="note">ملاحظة</option><option value="call">مكالمة</option></select><input id="ac" placeholder="ماذا حدث؟"></div><div class="actions"><button class="btn btn-ghost btn-sm" id="adda">إضافة</button></div></div>
       <div class="card"><h2>السجل</h2>${acts.length ? acts.map((a) => `<div class="act"><small>${new Date(a.created_at + "Z").toLocaleString("ar-SA")} · ${{ whatsapp: "واتساب", call: "مكالمة", note: "ملاحظة", status: "تغيير حالة", email: "بريد" }[a.kind] || a.kind}${a.channel ? " (" + a.channel + ")" : ""}</small><pre>${esc(a.content)}</pre></div>`).join("") : `<div class="hint">لا يوجد نشاط بعد</div>`}</div>`);
     const issues = (lead.site_issues || "").split("\n").filter(Boolean).map((x) => "• " + x).join("\n");
-    const render = (body) => body.replaceAll("{name}", lead.name).replaceAll("{city}", lead.city).replaceAll("{sector}", lead.sector).replaceAll("{activity}", lead.sector).replaceAll("{website}", lead.website || "").replaceAll("{issues}", issues).replaceAll("{demo}", lead._proposal_url || demoFor(lead) || "[الرابط]").replaceAll("{proposal}", lead._proposal_url || "[رابط العرض]").replaceAll("{sender}", S.settings.sender_name || "");
+    const render = (body) => body.replaceAll("{name}", lead.name).replaceAll("{city}", lead.city).replaceAll("{sector}", lead.sector).replaceAll("{activity}", lead.sector).replaceAll("{website}", lead.website || "").replaceAll("{issues}", issues).replaceAll("{demo}", lead._proposal_url || demoFor(lead) || "[الرابط]").replaceAll("{proposal}", lead._proposal_url || "[رابط العرض]").replaceAll("{site}", lead._site_url || "[رابط الموقع]").replaceAll("{stats}", lead._stats || "[إحصائيات الشهر]").replaceAll("{sender}", S.settings.sender_name || "");
     const pv = () => { const c = $("#custom", d.el).value.trim(); const t = tpls.find((x) => x.id === +$("#tp", d.el).value); $("#pv", d.el).textContent = render(c || (t ? t.body : "")); };
     pv(); $("#tp", d.el).onchange = pv; $("#custom", d.el).oninput = pv;
     $("#send", d.el).onclick = async () => {
@@ -224,6 +225,13 @@
         <div class="hint">المصدر: ${esc(prop.source)} · المشاهدات: <b>${prop.views}</b>${prop.last_viewed_at ? " · آخر فتح " + new Date(prop.last_viewed_at + "Z").toLocaleString("ar-SA") : ""}</div>
         ${prop.answered_at ? `<div class="preview" style="margin-top:8px">🎯 <b>أجاب العميل:</b> النمط: ${esc(prop.answers.style || "-")} · الأهم: ${esc((prop.answers.priorities || []).join("، ") || "-")} · التوقيت: ${esc(TIMING_AR[prop.answers.timing] || prop.answers.timing || "-")}${prop.answers.wants_start ? " · <b>✅ ضغط أبغى أبدأ</b>" : ""}${prop.answers.notes ? "\nملاحظاته: " + esc(prop.answers.notes) : ""}</div>` : `<div class="hint">لم يجب العميل على الأسئلة بعد.</div>`}
         <div class="hint" style="margin-top:6px">💡 ${esc(prop.brief.design_rationale || "")}</div></div>` : ""}
+      ${prop ? `<div class="card" style="background:${prop.published ? "#EEF6F1" : "#fff"}"><h2>🚀 نشر الموقع الحقيقي ${prop.published ? '<span class="tag won">منشور</span>' : ""}</h2>
+        ${prop.published ? `<div class="hint">الموقع يعمل الآن على: <a dir="ltr" target="_blank" rel="noopener" href="${esc(prop.site_url)}" style="text-decoration:underline">${esc(prop.site_url)}</a></div><div class="hint" id="stats">…</div>` : `<div class="hint">بعد موافقة العميل: نفس الصفحة تصبح موقعه الفعلي بدون الشريط والأسئلة، مع تتبع ضغطات واتساب والاتصال.</div>`}
+        <div class="row row-2"><div><label>الرابط المختصر (slug)</label><input id="slug" dir="ltr" placeholder="bait-almandi" value="${esc(prop.slug || "")}"></div><div><label>نطاق العميل (اختياري)</label><input id="dom" dir="ltr" placeholder="baitalmandi.com" value="${esc(prop.custom_domain || "")}"></div></div>
+        <div class="row row-2"><div><label>العنوان</label><input id="addr" value="${esc(prop.live.address || "")}"></div><div><label>رابط خرائط قوقل</label><input id="maps" dir="ltr" value="${esc(prop.live.maps_url || lead.maps_url || "")}"></div></div>
+        <div class="row row-2"><div><label>إنستقرام</label><input id="igl" dir="ltr" value="${esc(prop.live.instagram || lead.instagram || "")}"></div><div><label>رقم الواتساب في الموقع</label><input id="bph" dir="ltr" value="${esc(prop.live.phone || lead.phone)}"></div></div>
+        <label>أوقات العمل (سطر لكل يوم: الأيام | الوقت)</label><textarea id="hrs" style="min-height:60px" dir="auto">${esc((prop.live.hours || [["السبت – الخميس", "10:00 ص – 11:00 م"], ["الجمعة", "4:00 م – 11:00 م"]]).map((h) => h[0] + " | " + h[1]).join("\n"))}</textarea>
+        <div class="actions"><button class="btn btn-dark btn-sm" id="pub">${prop.published ? "تحديث ونشر" : "🚀 نشر الموقع"}</button>${prop.published ? `<button class="btn btn-ghost btn-sm" id="unpub">إيقاف النشر</button>` : ""}</div></div>` : ""}
       <div class="card"><h2>1) صور المنشأة (${photos.length})</h2>
         <div id="ph" style="display:flex;gap:6px;flex-wrap:wrap">${photos.map((u) => `<img src="${esc(u)}" style="width:72px;height:72px;object-fit:cover;border-radius:8px">`).join("") || '<span class="hint">لا توجد صور — أضف صورهم أو شعارهم، أو اجلبها من قوقل</span>'}</div>
         <div class="actions"><label class="btn btn-ghost btn-sm" style="cursor:pointer">📤 رفع صور<input id="up" type="file" accept="image/*" multiple hidden></label><button class="btn btn-ghost btn-sm" id="gp" ${S.settings.places_api ? "" : "disabled"}>📍 جلب صورهم من قوقل</button></div></div>
@@ -233,6 +241,13 @@
         <label>نبذة حسابهم في إنستقرام (اختياري)</label><textarea id="bio" style="min-height:60px"></textarea>
         <div class="actions"><button class="btn btn-dark btn-block" id="gen">${prop ? "🔄 إعادة التصميم" : "✨ تصميم العرض الآن"}</button></div></div>`);
     const cp = $("#cp", d.el); if (cp) cp.onclick = () => { navigator.clipboard.writeText(prop.url); toast("نُسخ الرابط"); };
+    const pub = $("#pub", d.el); if (pub) pub.onclick = async () => {
+      const hours = $("#hrs", d.el).value.split("\n").map((l) => l.split("|").map((x) => x.trim())).filter((h) => h.length === 2 && h[0]);
+      const body = { slug: $("#slug", d.el).value.trim().toLowerCase(), custom_domain: $("#dom", d.el).value.trim(), live: { address: $("#addr", d.el).value.trim(), maps_url: $("#maps", d.el).value.trim(), instagram: $("#igl", d.el).value.trim(), phone: $("#bph", d.el).value.replace(/\D/g, ""), hours } };
+      try { const r = await api(`/api/leads/${lead.id}/proposal/publish`, { method: "POST", body }); toast("🚀 الموقع منشور: " + r.site_url); d.close(); proposalForm(lead); } catch (e) { toast(e.message, true); }
+    };
+    const unpub = $("#unpub", d.el); if (unpub) unpub.onclick = async () => { if (!confirm("إيقاف نشر الموقع؟")) return; try { await api(`/api/leads/${lead.id}/proposal/unpublish`, { method: "POST" }); d.close(); proposalForm(lead); } catch (e) { toast(e.message, true); } };
+    if (prop && prop.published) { try { const st = await api(`/api/leads/${lead.id}/site/stats`); const m = st.this_month; $("#stats", d.el).textContent = `هذا الشهر: ${m.view} زيارة · ${m.wa} واتساب · ${m.call} اتصال · ${m.map} خريطة`; } catch (e) { /* ignore */ } }
     $("#up", d.el).onchange = async (e) => { const fd = new FormData(); [...e.target.files].forEach((f) => fd.append("files", f)); try { await api(`/api/leads/${lead.id}/photos`, { method: "POST", body: fd }); toast("رُفعت الصور"); d.close(); proposalForm(lead); } catch (err) { toast(err.message, true); } };
     $("#gp", d.el).onclick = async () => { $("#gp", d.el).disabled = true; try { const r = await api(`/api/leads/${lead.id}/photos/google`, { method: "POST" }); toast(`جُلبت ${r.saved.length} صورة`); d.close(); proposalForm(lead); } catch (err) { toast(err.message, true); $("#gp", d.el).disabled = false; } };
     $("#gen", d.el).onclick = async () => { const b = $("#gen", d.el); b.disabled = true; b.textContent = "المصمم يعمل… (قد يستغرق دقيقة)"; try { const r = await api(`/api/leads/${lead.id}/proposal`, { method: "POST", body: { kind: $("#kind", d.el).value, notes: $("#notes", d.el).value, instagram_bio: $("#bio", d.el).value } }); toast(`جاهز (${r.source})`); d.close(); proposalForm(lead); } catch (err) { toast(err.message, true); b.disabled = false; b.textContent = "✨ تصميم العرض الآن"; } };
@@ -263,6 +278,7 @@
         <div class="hint">${esc(c.contact_name)} · <span class="ltr">+${c.phone}</span> · ${fmt(c.monthly_fee)} ر.س/شهر · منذ ${c.start_date}${c.site_url ? ` · <a target="_blank" rel="noopener" href="${esc(c.site_url)}" style="text-decoration:underline">${esc(c.domain || c.site_url)}</a>` : ""}</div>
         ${c.invoices.length ? `<table style="margin-top:8px"><tr><th>الفاتورة</th><th>الفترة</th><th>المبلغ + ض</th><th>الاستحقاق</th><th>الحالة</th><th></th></tr>${c.invoices.sort((a, b) => b.period.localeCompare(a.period)).map((i) => `<tr><td class="ltr">${i.number}</td><td>${i.period}</td><td>${fmt(i.amount + i.vat)}</td><td>${i.due_date}</td><td><span class="tag ${i.status}">${INV_AR[i.status]}</span></td><td>${["unpaid", "overdue"].includes(i.status) ? `<button class="btn btn-ghost btn-sm pay" data-i="${i.id}">تم الدفع</button>` : ""}</td></tr>`).join("")}</table>` : ""}
         <div class="actions"><button class="btn btn-ghost btn-sm edit">تعديل</button></div></div>`).join("") : `<div class="card empty">لا يوجد اشتراكات بعد — حوّل أول عميل من صفحة العملاء</div>`}`);
+    cs.forEach(async (c) => { if (!c.site_url) return; try { const st = await api(`/api/clients/${c.id}/stats`); const m = st.this_month; const el = document.querySelector(`.card[data-id="${c.id}"] .hint`); if (el) el.insertAdjacentHTML("beforeend", ` · <b>هذا الشهر:</b> ${m.view} زيارة · ${m.wa} واتساب · ${m.call} اتصال`); } catch (e) { /* not published */ } });
     $("#add").onclick = () => clientForm();
     const bill = $("#bill"); if (bill) bill.onclick = async () => { try { const r = await api("/api/clients/run-billing", { method: "POST" }); toast(`أُصدرت ${r.length} فاتورة`); renderClients(); } catch (e) { toast(e.message, true); } };
     document.querySelectorAll(".pay").forEach((b) => b.onclick = async () => { try { await api(`/api/clients/invoices/${b.dataset.i}/pay`, { method: "POST" }); toast("سُجّل الدفع"); renderClients(); } catch (e) { toast(e.message, true); } });
@@ -293,7 +309,7 @@
   async function renderTemplates() {
     S.templates = await api("/api/templates");
     const admin = S.user.role === "admin";
-    shell(`<div class="card"><div class="actions" style="margin:0">${admin ? `<button class="btn btn-dark btn-sm" id="add">+ قالب</button>` : ""}<span class="hint" style="align-self:center">المتغيرات: {name} {city} {activity} {demo} {sender}</span></div></div>
+    shell(`<div class="card"><div class="actions" style="margin:0">${admin ? `<button class="btn btn-dark btn-sm" id="add">+ قالب</button>` : ""}<span class="hint" style="align-self:center">المتغيرات: {name} {city} {activity} {website} {issues} {demo} {proposal} {site} {stats} {sender}</span></div></div>
       ${S.templates.map((t) => `<div class="card" data-id="${t.id}"><h2>${esc(t.name)} <span><span class="tag new">${STAGE_AR[t.stage]}</span>${t.sector ? ` <span class="tag contacted">${esc(t.sector)}</span>` : ""}${t.is_active ? "" : ' <span class="tag lost">موقوف</span>'}</span></h2><div class="preview" style="max-height:140px">${esc(t.body)}</div>${admin ? `<div class="actions"><button class="btn btn-ghost btn-sm edit">تعديل</button><button class="btn btn-danger btn-sm del">حذف</button></div>` : ""}</div>`).join("")}`);
     if (!admin) return;
     $("#add").onclick = () => tplForm();

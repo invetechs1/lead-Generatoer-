@@ -83,6 +83,11 @@ Here is a sample of what a new site for your business could look like:
 Complete redesign + hosting + domain + monthly maintenance for SAR 1,000/month, no upfront payment, and we migrate your current content for free.
 
 Shall I prepare a version with your name? (Reply STOP to opt out.)"""),
+    ("تقرير شهري للعميل (بعد النشر)", "closing", "", """مرحبًا {name}، معك {sender} 🙏
+تقرير موقعكم {site} لهذا الشهر:
+{stats}
+
+يعني عملاء جدد وصلوا لكم من قوقل مباشرة. حدّثنا المنيو/الخدمات مجانًا كالعادة — تبون نضيف أي شيء هذا الشهر؟"""),
     ("رد: إيقاف / لا أريد", "objection", "", """تمام، شكرًا لوقتكم 🙏 ما راح أرسل لكم مرة ثانية. بالتوفيق لـ {name}."""),
     ("متابعة (بعد 2–3 أيام)", "follow_up", "", """مرحبًا، {sender} مرة ثانية 🙏
 أرسلت لكم قبل يومين نموذج الموقع الخاص بـ {name}:

@@ -12,8 +12,8 @@ from sqlalchemy.orm import Session
 from ..auth import current_user
 from ..config import settings
 from ..database import get_db
-from ..models import Lead, Proposal, Activity, User, Setting
-from ..schemas import ProposalIn, ProposalOut, BriefPatch, AnswersIn
+from ..models import Lead, Proposal, Activity, User, Setting, SiteEvent, Client
+from ..schemas import ProposalIn, ProposalOut, BriefPatch, AnswersIn, PublishIn, SiteStats
 from ..services import designer, places
 
 router = APIRouter(tags=["proposals"])
@@ -43,10 +43,17 @@ def _base_url(request: Request) -> str:
     return (settings.PUBLIC_BASE_URL or str(request.base_url)).rstrip("/")
 
 
+def live_url(p: Proposal, base: str) -> str:
+    if not p.published:
+        return ""
+    return f"https://{p.custom_domain}" if p.custom_domain else f"{base}/s/{p.slug}"
+
+
 def _out(p: Proposal, base: str) -> ProposalOut:
     return ProposalOut(lead_id=p.lead_id, token=p.token, url=f"{base}/p/{p.token}", kind=p.kind, source=p.source, brief=json.loads(p.brief or "{}"),
                        photos=json.loads(p.photos or "[]"), answers=json.loads(p.answers or "{}"), views=p.views, last_viewed_at=p.last_viewed_at,
-                       answered_at=p.answered_at, created_at=p.created_at)
+                       answered_at=p.answered_at, created_at=p.created_at, published=p.published, slug=p.slug, custom_domain=p.custom_domain,
+                       live=json.loads(p.live or "{}"), site_url=live_url(p, base))
 
 
 # ---------------- photos ----------------
@@ -182,14 +189,7 @@ def public_proposal(token: str, request: Request, db: Session = Depends(get_db))
     if lead.status in ("new", "contacted"):
         lead.status = "demo_sent"
     db.commit()
-    brief = json.loads(p.brief or "{}")
-    photos = json.loads(p.photos or "[]")
-    answers = json.loads(p.answers or "{}")
-    return TEMPLATES.TemplateResponse(request, "proposal.html", {
-        "brief": brief, "photos": photos, "lead": lead, "token": token, "answers": answers,
-        "sender": _setting(db, "sender_name", settings.SENDER_NAME), "price": _setting(db, "default_price", str(settings.DEFAULT_PRICE_SAR)),
-        "alt_palettes": designer.ALT_PALETTES, "wa_phone": _setting(db, "sender_phone", "") or lead.phone, "biz_phone": lead.phone,
-    })
+    return _render(request, db, p, "proposal")
 
 
 @router.post("/api/public/proposal/{token}/answers")
@@ -219,3 +219,123 @@ def public_answers(token: str, data: AnswersIn, db: Session = Depends(get_db)):
         lead.next_follow_up = date.today() + timedelta(days=1)
     db.commit()
     return {"ok": True}
+
+
+# ---------------- live site (publish) ----------------
+
+def _render(request: Request, db: Session, p: Proposal, mode: str):
+    lead = p.lead
+    brief = json.loads(p.brief or "{}")
+    live = json.loads(p.live or "{}")
+    return TEMPLATES.TemplateResponse(request, "proposal.html", {
+        "mode": mode, "brief": brief, "photos": json.loads(p.photos or "[]"), "lead": lead, "token": p.token, "slug": p.slug, "live": live,
+        "answers": json.loads(p.answers or "{}"), "sender": _setting(db, "sender_name", settings.SENDER_NAME),
+        "price": _setting(db, "default_price", str(settings.DEFAULT_PRICE_SAR)), "alt_palettes": designer.ALT_PALETTES,
+        "wa_phone": _setting(db, "sender_phone", "") or lead.phone, "biz_phone": live.get("phone") or lead.phone,
+    })
+
+
+@router.post("/api/leads/{lead_id}/proposal/publish", response_model=ProposalOut)
+def publish(lead_id: int, data: PublishIn, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    """Turn the approved proposal into the client's live website: /s/<slug>, or their own domain pointed at this server."""
+    p = db.query(Proposal).filter(Proposal.lead_id == lead_id).first()
+    if not p:
+        raise HTTPException(404, "No proposal yet")
+    clash = db.query(Proposal).filter(Proposal.slug == data.slug, Proposal.id != p.id).first()
+    if clash:
+        raise HTTPException(409, "Slug already used")
+    if data.custom_domain and db.query(Proposal).filter(Proposal.custom_domain == data.custom_domain, Proposal.id != p.id).first():
+        raise HTTPException(409, "Domain already used")
+    p.slug, p.custom_domain, p.live = data.slug, data.custom_domain, json.dumps(data.live, ensure_ascii=False)
+    p.published, p.published_at = True, datetime.utcnow()
+    base = _base_url(request)
+    url = live_url(p, base)
+    if p.lead.client:
+        p.lead.client.site_url = url
+        p.lead.client.domain = data.custom_domain or ""
+        if p.lead.client.status == "onboarding":
+            p.lead.client.status = "active"
+    db.add(Activity(lead_id=lead_id, user_id=user.id, kind="note", content=f"🚀 نُشر الموقع: {url}"))
+    db.commit(); db.refresh(p)
+    _domain_cache.clear()
+    return _out(p, base)
+
+
+@router.post("/api/leads/{lead_id}/proposal/unpublish", response_model=ProposalOut)
+def unpublish(lead_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    p = db.query(Proposal).filter(Proposal.lead_id == lead_id).first()
+    if not p:
+        raise HTTPException(404, "No proposal yet")
+    p.published = False
+    db.add(Activity(lead_id=lead_id, user_id=user.id, kind="note", content="⏸ أُوقف نشر الموقع"))
+    db.commit(); db.refresh(p); _domain_cache.clear()
+    return _out(p, _base_url(request))
+
+
+@router.get("/s/{slug}", response_class=HTMLResponse, include_in_schema=False)
+def live_site(slug: str, request: Request, db: Session = Depends(get_db)):
+    p = db.query(Proposal).filter(Proposal.slug == slug, Proposal.published == True).first()  # noqa: E712
+    if not p:
+        raise HTTPException(404, "Not found")
+    db.add(SiteEvent(proposal_id=p.id, kind="view")); db.commit()
+    return _render(request, db, p, "live")
+
+
+_domain_cache: dict[str, bool] = {}
+
+
+def is_custom_domain(host: str) -> bool:
+    """Cheap check used by the SPA catch-all on every request; cached until the next publish."""
+    if host in _domain_cache:
+        return _domain_cache[host]
+    from ..database import SessionLocal
+    with SessionLocal() as db:
+        hit = db.query(Proposal.id).filter(Proposal.custom_domain == host, Proposal.published == True).first() is not None  # noqa: E712
+    _domain_cache[host] = hit
+    return hit
+
+
+def render_live_by_domain(host: str, request: Request, db: Session):
+    p = db.query(Proposal).filter(Proposal.custom_domain == host, Proposal.published == True).first()  # noqa: E712
+    if not p:
+        raise HTTPException(404, "Not found")
+    db.add(SiteEvent(proposal_id=p.id, kind="view")); db.commit()
+    return _render(request, db, p, "live")
+
+
+@router.post("/api/public/site/{slug}/event", status_code=204)
+def site_event(slug: str, kind: str, db: Session = Depends(get_db)):
+    """Beacon from the live site: a visitor tapped WhatsApp / call / map / form."""
+    if kind not in ("wa", "call", "map", "form"):
+        raise HTTPException(400, "bad kind")
+    p = db.query(Proposal).filter(Proposal.slug == slug, Proposal.published == True).first()  # noqa: E712
+    if not p:
+        raise HTTPException(404, "Not found")
+    db.add(SiteEvent(proposal_id=p.id, kind=kind)); db.commit()
+
+
+def _stats(p: Proposal, base: str, months: int) -> SiteStats:
+    from collections import defaultdict
+    buckets: dict[str, dict] = defaultdict(lambda: {"view": 0, "wa": 0, "call": 0, "map": 0, "form": 0})
+    for ev in p.events:
+        buckets[ev.created_at.strftime("%Y-%m")][ev.kind] += 1
+    periods = sorted(buckets.keys(), reverse=True)[:months]
+    this = datetime.utcnow().strftime("%Y-%m")
+    return SiteStats(slug=p.slug, url=live_url(p, base), custom_domain=p.custom_domain,
+                     months=[{"period": k, **buckets[k]} for k in periods], this_month={"period": this, **buckets[this]})
+
+
+@router.get("/api/leads/{lead_id}/site/stats", response_model=SiteStats)
+def lead_site_stats(lead_id: int, request: Request, months: int = 6, db: Session = Depends(get_db), _: User = Depends(current_user)):
+    p = db.query(Proposal).filter(Proposal.lead_id == lead_id).first()
+    if not p or not p.published:
+        raise HTTPException(404, "Site not published")
+    return _stats(p, _base_url(request), months)
+
+
+@router.get("/api/clients/{cid}/stats", response_model=SiteStats)
+def client_site_stats(cid: int, request: Request, months: int = 6, db: Session = Depends(get_db), _: User = Depends(current_user)):
+    c = db.get(Client, cid)
+    if not c or not c.lead or not c.lead.proposal or not c.lead.proposal.published:
+        raise HTTPException(404, "Site not published")
+    return _stats(c.lead.proposal, _base_url(request), months)

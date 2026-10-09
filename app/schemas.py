@@ -190,6 +190,11 @@ class ProposalOut(BaseModel):
     last_viewed_at: Optional[datetime]
     answered_at: Optional[datetime]
     created_at: datetime
+    published: bool = False
+    slug: str = ""
+    custom_domain: str = ""
+    live: dict = {}
+    site_url: str = ""
 
 
 class BriefPatch(BaseModel):
@@ -207,6 +212,28 @@ class AnswersIn(BaseModel):
     @classmethod
     def _short(cls, v):
         return [x[:40] for x in v]
+
+
+class PublishIn(BaseModel):
+    slug: str = Field(min_length=3, max_length=80, pattern=r"^[a-z0-9][a-z0-9-]*[a-z0-9]$")
+    custom_domain: str = Field(default="", max_length=200)
+    live: dict = Field(default_factory=dict)  # hours: list[[label, value]], address, maps_url, instagram, phone, email
+
+    @field_validator("custom_domain")
+    @classmethod
+    def _domain(cls, v: str) -> str:
+        v = v.strip().lower().removeprefix("https://").removeprefix("http://").rstrip("/")
+        if v and not re.match(r"^[a-z0-9.-]+\.[a-z]{2,}$", v):
+            raise ValueError("invalid domain")
+        return v
+
+
+class SiteStats(BaseModel):
+    slug: str
+    url: str
+    custom_domain: str
+    months: list[dict]  # [{period, view, wa, call, map, form}] newest first
+    this_month: dict
 
 
 class ButtonsSendIn(BaseModel):

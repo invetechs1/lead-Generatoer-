@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from .config import settings
-from .database import Base, engine, SessionLocal
+from .database import Base, engine, SessionLocal, ensure_columns
 from . import models  # noqa: F401  (register tables)
 from .seed import seed
 from .routers import auth, leads, templates, clients, dashboard, discover, proposals, whatsapp_webhook
@@ -18,6 +18,9 @@ STATIC = Path(__file__).parent / "static"
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    added = ensure_columns(engine)
+    if added:
+        print("schema: added columns", ", ".join(added))
     with SessionLocal() as db:
         seed(db)
     yield
@@ -63,5 +66,10 @@ def demo(kind: str):
 
 
 @app.get("/{path:path}", include_in_schema=False)
-def spa(path: str):
+def spa(path: str, request: Request):
+    # A client's custom domain pointed at this server serves their live site at /
+    host = (request.headers.get("host") or "").split(":")[0].lower()
+    if host and path in ("", "index.html") and proposals.is_custom_domain(host):
+        with SessionLocal() as db:
+            return proposals.render_live_by_domain(host, request, db)
     return FileResponse(STATIC / "index.html")
