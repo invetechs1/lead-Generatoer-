@@ -2,7 +2,9 @@ from sqlalchemy.orm import Session
 
 from .auth import hash_password
 from .config import settings
-from .models import User, Template
+import secrets
+
+from .models import User, Template, Invoice
 
 TEMPLATES = [
     ("رسالة أولى — عامة", "first", "", """السلام عليكم، معك {sender}.
@@ -88,6 +90,11 @@ Shall I prepare a version with your name? (Reply STOP to opt out.)"""),
 {stats}
 
 يعني عملاء جدد وصلوا لكم من قوقل مباشرة. حدّثنا المنيو/الخدمات مجانًا كالعادة — تبون نضيف أي شيء هذا الشهر؟"""),
+    ("تذكير فاتورة الاشتراك", "closing", "", """مرحبًا {name}، معك {sender} 🙏
+فاتورة اشتراك الموقع لهذا الشهر جاهزة:
+{invoice}
+
+الدفع بمدى أو أبل باي أو تحويل بنكي من نفس الرابط خلال دقيقة. شكرًا لثقتكم 🌹"""),
     ("رد: إيقاف / لا أريد", "objection", "", """تمام، شكرًا لوقتكم 🙏 ما راح أرسل لكم مرة ثانية. بالتوفيق لـ {name}."""),
     ("متابعة (بعد 2–3 أيام)", "follow_up", "", """مرحبًا، {sender} مرة ثانية 🙏
 أرسلت لكم قبل يومين نموذج الموقع الخاص بـ {name}:
@@ -113,6 +120,8 @@ Shall I prepare a version with your name? (Reply STOP to opt out.)"""),
 
 
 def seed(db: Session) -> None:
+    for inv in db.query(Invoice).filter(Invoice.token == ""):  # invoices created before payment links existed
+        inv.token = secrets.token_urlsafe(18)
     if not db.query(User).first():
         db.add(User(email=settings.ADMIN_EMAIL.lower(), name=settings.ADMIN_NAME, password_hash=hash_password(settings.ADMIN_PASSWORD), role="admin"))
     if not db.query(Template).first():

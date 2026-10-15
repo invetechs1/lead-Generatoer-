@@ -311,6 +311,9 @@ class InvoiceOut(BaseModel):
     due_date: date
     status: str
     paid_at: Optional[datetime]
+    token: str = ""
+    paid_via: str = ""
+    transfer_claimed_at: Optional[datetime] = None
     model_config = {"from_attributes": True}
 
 

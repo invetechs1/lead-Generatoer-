@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     WHATSAPP_VERIFY_TOKEN: str = ""  # any secret you choose; Meta sends it back on webhook verification
     WHATSAPP_APP_SECRET: str = ""  # Meta app secret, used to verify X-Hub-Signature-256 on webhooks
 
+    # Online payments (Moyasar: Mada, Apple Pay, cards, STC Pay). Empty = bank-transfer instructions on the invoice page.
+    MOYASAR_PUBLISHABLE_KEY: str = ""
+    MOYASAR_SECRET_KEY: str = ""
+    MOYASAR_WEBHOOK_SECRET: str = ""
+
     # Designer agent (Claude). Leave the key empty to use the built-in sector presets.
     ANTHROPIC_API_KEY: str = ""
     DESIGN_MODEL: str = "claude-opus-5"

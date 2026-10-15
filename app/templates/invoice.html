@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
+<title>فاتورة {{ inv.number }} — {{ client.company }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+{% if moyasar_key and state != 'paid' %}<link rel="stylesheet" href="https://cdn.moyasar.com/mpf/1.14.0/moyasar.css"><script src="https://cdn.moyasar.com/mpf/1.14.0/moyasar.js"></script>{% endif %}
+<style>
+:root{--night:#12263A;--saffron:#E0A33A;--paper:#F4F5F7;--ink:#171717;--mut:#66707A;--line:#E3E6EA;--ok:#2E7D4F;--bad:#B3261E;--wa:#25D366}
+*{box-sizing:border-box}body{margin:0;font-family:"IBM Plex Sans Arabic",system-ui,sans-serif;background:var(--paper);color:var(--ink);line-height:1.7}
+.wrap{max-width:720px;margin:0 auto;padding:24px 16px 60px}
+.card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:26px;margin-bottom:16px}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.brand{font-weight:700;font-size:20px;color:var(--night)}.brand small{display:block;font-weight:400;color:var(--mut);font-size:12px}
+.num{text-align:left;font-size:13px;color:var(--mut)}.num b{display:block;font-size:17px;color:var(--ink);font-family:monospace}
+.badge{display:inline-block;padding:4px 12px;border-radius:999px;font-size:13px;font-weight:600}.unpaid,.overdue{background:#FFF4D6;color:#8A5A00}.paid{background:#E6F4EA;color:var(--ok)}.overdue{background:#FDE7E5;color:var(--bad)}
+table{width:100%;border-collapse:collapse;margin-top:18px}td,th{padding:12px 8px;border-bottom:1px solid var(--line);text-align:right}th{color:var(--mut);font-weight:500;font-size:13px}td.n,th.n{text-align:left;font-variant-numeric:tabular-nums}
+.total td{font-weight:700;font-size:18px;border-bottom:0}
+.meta{display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;margin-top:16px;font-size:14px;color:var(--mut)}.meta b{color:var(--ink);font-weight:600}
+h2{font-size:18px;margin:0 0 12px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 22px;border-radius:12px;font-weight:600;border:0;cursor:pointer;font:inherit;font-weight:600}
+.btn-dark{background:var(--night);color:#fff}.btn-wa{background:var(--wa);color:#fff}.btn-ghost{background:#fff;border:1.5px solid var(--line);color:var(--night)}.btn-block{width:100%}
+.iban{font-family:monospace;font-size:17px;letter-spacing:.5px;direction:ltr;text-align:left;background:var(--paper);border:1px dashed var(--line);border-radius:12px;padding:12px;margin:8px 0}
+.ok{background:#E6F4EA;border:1px solid #CFE8D6;color:#1E5631;border-radius:14px;padding:16px;text-align:center;font-weight:600}
+.err{background:#FDE7E5;border:1px solid #F5C6C2;color:#8A1C14;border-radius:14px;padding:14px;margin-bottom:14px}
+.hint{font-size:13px;color:var(--mut)}
+.mysr-form{margin-top:10px}
+@media print{.noprint{display:none}body{background:#fff}.card{border:0;padding:0}}
+</style>
+</head>
+<body><div class="wrap">
+{% set total = inv.amount + inv.vat %}
+<div class="card">
+  <div class="head"><div class="brand">{{ s.sender_name }}<small>{% if s.cr_number %}س.ت {{ s.cr_number }} · {% endif %}{% if s.vat_number %}الرقم الضريبي {{ s.vat_number }}{% endif %}</small></div>
+    <div class="num">فاتورة ضريبية مبسطة<b>{{ inv.number }}</b><span class="badge {{ inv.status }}">{{ {'unpaid':'غير مدفوعة','overdue':'متأخرة','paid':'مدفوعة','void':'ملغاة'}[inv.status] }}</span></div></div>
+  <div class="meta"><div>العميل<br><b>{{ client.company }}</b></div><div>الفترة<br><b>{{ inv.period }}</b></div><div>تاريخ الإصدار<br><b>{{ inv.created_at.strftime('%Y-%m-%d') }}</b></div><div>تاريخ الاستحقاق<br><b>{{ inv.due_date }}</b></div></div>
+  <table><tr><th>البند</th><th class="n">المبلغ</th></tr>
+    <tr><td>اشتراك موقع إلكتروني — تصميم واستضافة ونطاق وتحديث شهري ({{ inv.period }})</td><td class="n">{{ '{:,}'.format(inv.amount) }} ر.س</td></tr>
+    <tr><td>ضريبة القيمة المضافة 15%</td><td class="n">{{ '{:,}'.format(inv.vat) }} ر.س</td></tr>
+    <tr class="total"><td>الإجمالي المستحق</td><td class="n">{{ '{:,}'.format(total) }} ر.س</td></tr></table>
+</div>
+
+{% if state == 'paid' or inv.status == 'paid' %}
+<div class="card"><div class="ok">✅ تم استلام الدفع — شكرًا لكم{% if inv.paid_at %} · {{ inv.paid_at.strftime('%Y-%m-%d') }}{% endif %}</div><p class="hint" style="text-align:center;margin:12px 0 0">يمكنكم طباعة هذه الصفحة كإيصال.</p></div>
+{% else %}
+{% if state == 'failed' %}<div class="err">⚠️ {{ message }}</div>{% endif %}
+{% if moyasar_key %}
+<div class="card noprint"><h2>الدفع الإلكتروني</h2><p class="hint" style="margin:0 0 6px">مدى · فيزا/ماستركارد · Apple Pay · STC Pay — آمن عبر Moyasar</p>
+  <div class="mysr-form"></div>
+  <script>Moyasar.init({element:'.mysr-form',amount:{{ amount_halalas }},currency:'SAR',description:'{{ s.sender_name }} — {{ inv.number }} ({{ inv.period }})',publishable_api_key:'{{ moyasar_key }}',callback_url:'{{ callback_url }}',methods:['creditcard','applepay','stcpay'],metadata:{invoice_token:'{{ inv.token }}',invoice:'{{ inv.number }}'},apple_pay:{country:'SA',label:'{{ s.sender_name }}',validate_merchant_url:'https://api.moyasar.com/v1/applepay/initiate'}});</script></div>
+{% endif %}
+{% if s.iban %}
+<div class="card noprint"><h2>{% if moyasar_key %}أو {% endif %}تحويل بنكي</h2>
+  <div class="hint">البنك: <b>{{ s.bank_name }}</b>{% if s.account_name %} · باسم: <b>{{ s.account_name }}</b>{% endif %}</div>
+  <div class="iban" id="iban">{{ s.iban }}</div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn btn-ghost" onclick="navigator.clipboard&&navigator.clipboard.writeText(document.getElementById('iban').textContent.trim());this.textContent='تم النسخ ✓'">نسخ الآيبان</button><button class="btn btn-dark" id="tn" onclick="notify()">أبلغت بالتحويل ✓</button></div>
+  <p class="hint" style="margin:10px 0 0">المبلغ: <b>{{ '{:,}'.format(total) }} ر.س</b> — اكتبوا رقم الفاتورة {{ inv.number }} في وصف التحويل.</p></div>
+{% elif not moyasar_key %}
+<div class="card noprint"><h2>طريقة الدفع</h2><p class="hint">تواصلوا معنا لإتمام الدفع.</p></div>
+{% endif %}
+{% endif %}
+<div class="card noprint" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between"><span class="hint">استفسار؟</span><div style="display:flex;gap:8px">{% if s.sender_phone %}<a class="btn btn-wa" href="https://wa.me/{{ s.sender_phone }}?text={{ ('استفسار عن الفاتورة ' ~ inv.number)|urlencode }}">واتساب</a>{% endif %}<button class="btn btn-ghost" onclick="print()">طباعة</button></div></div>
+<p class="hint" style="text-align:center">{{ s.sender_name }} · هذه الصفحة خاصة بالعميل ولا تُفهرس</p>
+</div>
+<script>function notify(){var b=document.getElementById('tn');b.disabled=true;fetch('/api/public/invoice/{{ inv.token }}/transfer-notice',{method:'POST'}).then(function(){b.textContent='وصلنا إشعاركم، سنؤكد خلال ساعات 🙏'}).catch(function(){b.disabled=false});}</script>
+</body></html>

@@ -1,3 +1,4 @@
+import secrets
 from datetime import date, datetime
 from calendar import monthrange
 
@@ -21,7 +22,7 @@ def _next_number(db: Session) -> str:
 def _issue(db: Session, c: Client, period: str) -> Invoice:
     y, m = int(period[:4]), int(period[5:7])
     due = date(y, m, min(c.billing_day, monthrange(y, m)[1]))
-    inv = Invoice(client_id=c.id, number=_next_number(db), period=period, amount=c.monthly_fee, vat=round(c.monthly_fee * VAT_RATE), due_date=due)
+    inv = Invoice(client_id=c.id, number=_next_number(db), period=period, amount=c.monthly_fee, vat=round(c.monthly_fee * VAT_RATE), due_date=due, token=secrets.token_urlsafe(18))
     db.add(inv); db.flush()
     return inv
 
@@ -78,7 +79,7 @@ def pay(iid: int, db: Session = Depends(get_db), _: User = Depends(current_user)
     inv = db.get(Invoice, iid)
     if not inv:
         raise HTTPException(404, "Invoice not found")
-    inv.status = "paid"; inv.paid_at = datetime.utcnow()
+    inv.status = "paid"; inv.paid_at = datetime.utcnow(); inv.paid_via = inv.paid_via or "manual"
     if inv.client.status == "onboarding":
         inv.client.status = "active"
     db.commit(); db.refresh(inv)

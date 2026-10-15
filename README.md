@@ -14,6 +14,7 @@ Full-stack system for the "website-as-a-subscription" campaign (SAR 1,000/month)
 | Client feedback | The proposal page has **tap-to-answer questions** (style swatches that re-theme the page live, what matters most, when to start, notes, "أبغى أبدأ"). Answers land in the lead's timeline, move the pipeline (negotiating / replied / lost) and set the follow-up. Views are counted ("he opened it 3 times") |
 | WhatsApp buttons | Cloud API reply-buttons / list messages (`POST /api/whatsapp/leads/{id}/buttons`), marketing-template payloads, and a **webhook** (`/api/whatsapp/webhook`, signature-verified) that logs replies, maps button ids (`start*`, `later*`, `no*`, `stop*`) to pipeline moves and honours opt-outs |
 | Live sites | **🚀 نشر الموقع**: the approved proposal becomes the client's real website at `/s/<slug>` or on **their own domain** pointed at this server (no ribbon, no questions, indexable, real hours/address/map/Instagram). WhatsApp / call / map clicks are tracked per site; this month's numbers show on the lead, on the Clients page, and in the `{stats}` / `{site}` placeholders of the monthly report template (the retention lever) |
+| Payments | Every invoice has a public page `/inv/<token>` (simplified tax invoice: VAT number, 15% VAT, status). With Moyasar keys it embeds the hosted form (**Mada, Apple Pay, cards, STC Pay**); the callback and webhook re-verify the payment with the secret key and match the amount before marking paid. Without keys it shows your IBAN with an "I transferred" button that flags the invoice for confirmation. `{invoice}` placeholder + seeded reminder template; one-tap WhatsApp reminder per invoice on the Clients page |
 | Schema updates | On startup the app creates missing tables **and adds missing columns** to existing ones (`database.ensure_columns`), so upgrades need no manual SQL |
 | Sample sites | `/demo/restaurant` and `/demo/business` — professional RTL sample websites, **personalised per lead** (`?n=name&c=city&p=phone&s=sector`); `{demo}` in templates becomes the lead's own link automatically |
 | Pipeline | new → contacted → replied → demo_sent → negotiating → won / lost / do_not_contact, full activity timeline (WhatsApp, calls, notes, status changes) |
@@ -63,7 +64,7 @@ Backups land in `./backups/` daily. Restore: `gunzip -c backups/bassir-YYYY-MM-D
 
 ## Tests
 ```bash
-python -m pytest -q tests     # 24 tests: auth, RBAC, phone normalization, CSV import, send + cap, billing, dashboard, site audit, demo pages
+python -m pytest -q tests     # 26 tests: auth, RBAC, phone normalization, CSV import, send + cap, billing, dashboard, site audit, demo pages
 ```
 
 ## Daily workflow
@@ -77,7 +78,7 @@ python -m pytest -q tests     # 24 tests: auth, RBAC, phone normalization, CSV i
 `name,phone,city,sector,instagram,website,maps_url,notes` — Arabic headers (الاسم, الجوال, المدينة, النشاط, ملاحظات) also accepted. Phones in any format (05…, +966…, 00966…).
 
 ## Template placeholders
-`{name} {city} {activity}/{sector} {website} {issues} {demo} {proposal} {site} {stats} {sender}` — `{issues}` is the bullet list from the site audit, `{proposal}` is the designed proposal link (`{demo}` also resolves to it once a proposal exists, otherwise to the personalised sample site).
+`{name} {city} {activity}/{sector} {website} {issues} {demo} {proposal} {site} {stats} {invoice} {sender}` — `{issues}` is the bullet list from the site audit, `{proposal}` is the designed proposal link (`{demo}` also resolves to it once a proposal exists, otherwise to the personalised sample site).
 
 ## Proposal workflow (what makes a client say yes)
 1. Open the lead → **🎨 عرض مصمم** → upload their logo/photos or **جلب صورهم من قوقل** (their own Maps photos).

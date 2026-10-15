@@ -46,7 +46,7 @@ def dashboard(db: Session = Depends(get_db), _: User = Depends(current_user)):
     }
 
 
-DEFAULT_SETTINGS = {"daily_send_cap": str(settings.DAILY_SEND_CAP), "sender_name": settings.SENDER_NAME, "sender_phone": "", "demo_url": settings.DEMO_URL, "default_price": str(settings.DEFAULT_PRICE_SAR)}
+DEFAULT_SETTINGS = {"daily_send_cap": str(settings.DAILY_SEND_CAP), "sender_name": settings.SENDER_NAME, "sender_phone": "", "demo_url": settings.DEMO_URL, "default_price": str(settings.DEFAULT_PRICE_SAR), "bank_name": "", "iban": "", "account_name": "", "vat_number": "", "cr_number": ""}
 
 
 @router.get("/settings")
@@ -57,6 +57,7 @@ def get_settings(db: Session = Depends(get_db), _: User = Depends(current_user))
     out["whatsapp_api"] = bool(settings.WHATSAPP_TOKEN and settings.WHATSAPP_PHONE_ID)
     out["places_api"] = bool(settings.GOOGLE_PLACES_API_KEY)
     out["designer_api"] = bool(settings.ANTHROPIC_API_KEY)
+    out["moyasar"] = bool(settings.MOYASAR_PUBLISHABLE_KEY and settings.MOYASAR_SECRET_KEY)
     return out
 
 

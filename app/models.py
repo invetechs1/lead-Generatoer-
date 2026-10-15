@@ -150,6 +150,10 @@ class Invoice(Base):
     due_date: Mapped[date] = mapped_column(Date)
     status: Mapped[str] = mapped_column(String(20), default="unpaid")  # unpaid | paid | overdue | void
     paid_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    token: Mapped[str] = mapped_column(String(48), default="", index=True)  # public /inv/<token> payment page
+    payment_id: Mapped[str] = mapped_column(String(80), default="")  # gateway payment id
+    paid_via: Mapped[str] = mapped_column(String(30), default="")  # moyasar | transfer | manual
+    transfer_claimed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)  # client pressed "I transferred"
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
 
     client = relationship("Client", back_populates="invoices")

@@ -32,6 +32,7 @@ Optional API keys (the system works without them, features switch on when added)
 |---|---|---|
 | `GOOGLE_PLACES_API_KEY` | Lead discovery from Google Maps + pulling a business's photos | Google Cloud Console → enable **Places API (New)** → Credentials → API key. Restrict it to the Places API. Free tier: 5,000 Text Search calls/month |
 | `ANTHROPIC_API_KEY` | The designer agent (custom design brief per lead) | console.anthropic.com → API keys |
+| `MOYASAR_PUBLISHABLE_KEY`, `MOYASAR_SECRET_KEY`, `MOYASAR_WEBHOOK_SECRET` | Online payment of invoices (Mada, Apple Pay, cards) | moyasar.com → Dashboard → API keys / Webhooks (see section 8c) |
 | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET` | Sending through WhatsApp Cloud API, interactive buttons, receiving replies | Meta for Developers → WhatsApp Business Platform (see section 8) |
 
 ---
@@ -110,6 +111,9 @@ WHATSAPP_TOKEN=
 WHATSAPP_PHONE_ID=
 WHATSAPP_VERIFY_TOKEN=<openssl rand -hex 16>      # you choose it; Meta echoes it during webhook verification
 WHATSAPP_APP_SECRET=
+MOYASAR_PUBLISHABLE_KEY=
+MOYASAR_SECRET_KEY=
+MOYASAR_WEBHOOK_SECRET=
 ```
 
 Then point Nginx at the domain:
@@ -220,6 +224,18 @@ A published proposal is served at `https://leads.example.com/s/<slug>` immediate
 5. The app routes by the `Host` header, so no app restart is needed. Verify: `curl -s https://baitalmandi.com | grep -c data-ev` → a number > 0.
 
 > With more than ~10 client domains, switch Nginx to a wildcard-free automatic setup (Caddy or nginx-proxy + acme-companion) so certificates are issued on demand. Not needed at the start.
+
+## 8c. Online payments (Moyasar — optional)
+
+Without keys, invoice pages show the IBAN entered in Settings and an "I transferred" button. To accept Mada / Apple Pay / cards:
+
+1. Create a Moyasar account (moyasar.com), complete business verification, and enable Mada + Apple Pay in the dashboard.
+2. Dashboard → API keys: copy the **publishable** and **secret** keys → `MOYASAR_PUBLISHABLE_KEY`, `MOYASAR_SECRET_KEY` in `.env`. Use the test keys first (`pk_test_…`, `sk_test_…`).
+3. Dashboard → Webhooks: URL `https://leads.example.com/api/payments/moyasar/webhook`, event **payment_paid**, set a secret token → `MOYASAR_WEBHOOK_SECRET`.
+4. Apple Pay: register the domain in the Moyasar dashboard (it hosts the verification file through the hosted form) — follow Moyasar's Apple Pay guide for the domain association step.
+5. `docker compose up -d`, then open any unpaid invoice link from the Clients page (**رابط**) and pay with a Moyasar test card. The invoice must flip to مدفوعة and the lead's timeline must show the payment.
+
+The server never trusts the redirect: every callback and webhook fetches the payment with the secret key and checks status, currency and the exact amount before marking the invoice paid.
 
 ## 9. Building the lead list on the server
 

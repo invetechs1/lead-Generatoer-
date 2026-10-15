@@ -61,12 +61,26 @@ def stats_text(lead) -> str:
     return f"{counts['view']} زيارة · {counts['wa']} ضغطة واتساب · {counts['call']} اتصال · {counts['map']} فتح للخريطة"
 
 
+def invoice_url(lead, base_url: str = "") -> str:
+    """Link to the client's oldest open invoice (overdue first), or '' when nothing is due."""
+    client = getattr(lead, "client", None)
+    if not client:
+        return ""
+    open_ = [i for i in client.invoices if i.status in ("unpaid", "overdue") and i.token]
+    if not open_:
+        return ""
+    inv = sorted(open_, key=lambda i: i.due_date)[0]
+    base = (base_url or settings.PUBLIC_BASE_URL or "").rstrip("/")
+    return f"{base}/inv/{inv.token}"
+
+
 def render(body: str, lead, demo_url: str = "", sender: str = "", base_url: str = "") -> str:
     demo = proposal_url(lead, base_url) or personal_demo(demo_url or settings.DEMO_URL or "", lead)
     return (
         body.replace("{name}", lead.name or "")
         .replace("{proposal}", proposal_url(lead, base_url))
         .replace("{site}", site_url(lead, base_url))
+        .replace("{invoice}", invoice_url(lead, base_url))
         .replace("{stats}", stats_text(lead))
         .replace("{city}", lead.city or "")
         .replace("{sector}", lead.sector or "")
