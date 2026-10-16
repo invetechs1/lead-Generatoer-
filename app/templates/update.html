@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
+<title>تحديث موقع {{ client.company }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--night:#12263A;--saffron:#E0A33A;--paper:#F4F5F7;--ink:#171717;--mut:#66707A;--line:#E3E6EA;--ok:#2E7D4F;--wa:#25D366}
+*{box-sizing:border-box}body{margin:0;font-family:"IBM Plex Sans Arabic",system-ui,sans-serif;background:var(--paper);color:var(--ink);line-height:1.7}
+.wrap{max-width:640px;margin:0 auto;padding:24px 16px 60px}
+.card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:24px;margin-bottom:16px}
+h1{font-size:22px;margin:0 0 4px;color:var(--night)}.sub{color:var(--mut);margin:0 0 18px;font-size:14px}
+label{display:block;font-weight:600;margin:14px 0 6px}textarea,input[type=file]{width:100%;font:inherit;border:1.5px solid var(--line);border-radius:12px;padding:12px;background:#fff}textarea{min-height:140px;resize:vertical}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 22px;border-radius:12px;font-weight:600;border:0;cursor:pointer;font:inherit;font-weight:600}.btn-dark{background:var(--night);color:#fff}.btn-wa{background:var(--wa);color:#fff}.btn-block{width:100%}
+.ok{background:#E6F4EA;border:1px solid #CFE8D6;color:#1E5631;border-radius:14px;padding:16px;text-align:center;font-weight:600;margin-bottom:16px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 0}.chips button{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;font:inherit;cursor:pointer;font-size:14px}
+.hist{font-size:14px}.hist li{padding:10px 0;border-bottom:1px dashed var(--line)}.hist small{color:var(--mut)}.tag{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:600}.open{background:#FFF4D6;color:#8A5A00}.done{background:#E6F4EA;color:var(--ok)}
+.hint{font-size:13px;color:var(--mut)}
+</style>
+</head>
+<body><div class="wrap">
+<div class="card">
+  <h1>تحديث موقع {{ client.company }}</h1><p class="sub">اكتبوا التعديل المطلوب أو أرفقوا صورًا (منيو، أسعار، صور جديدة، أوقات العمل). ننفّذه خلال 24 ساعة ضمن اشتراككم، بدون أي رسوم إضافية.{% if client.site_url %} · <a href="{{ client.site_url }}" target="_blank" rel="noopener" style="text-decoration:underline">موقعكم الحالي</a>{% endif %}</p>
+  {% if sent %}<div class="ok">✅ وصلنا طلبكم، سننفّذه ونبلغكم على واتساب.</div>{% endif %}
+  <form method="post" action="/api/public/update/{{ client.update_token }}" enctype="multipart/form-data" onsubmit="return send(event)">
+    <label>ماذا تريدون تغييره؟</label>
+    <div class="chips"><button type="button" onclick="add('تحديث الأسعار: ')">تحديث الأسعار</button><button type="button" onclick="add('إضافة صنف/خدمة جديدة: ')">إضافة صنف جديد</button><button type="button" onclick="add('تغيير أوقات العمل: ')">أوقات العمل</button><button type="button" onclick="add('عرض خاص هذا الشهر: ')">عرض خاص</button><button type="button" onclick="add('استبدال صور: ')">صور جديدة</button></div>
+    <textarea name="text" id="t" placeholder="مثال: ارفعوا سعر المندي إلى 70 ريال، وأضيفوا طبق السليق الجديد بـ 45 ريال، والصور المرفقة للقسم الجديد."></textarea>
+    <label>صور أو ملفات (اختياري، حتى 10)</label><input type="file" name="files" multiple accept="image/*,.pdf">
+    <div style="margin-top:16px"><button class="btn btn-dark btn-block" id="sb" type="submit">إرسال الطلب</button></div>
+  </form>
+</div>
+{% if recent %}<div class="card"><h1 style="font-size:17px">طلباتكم السابقة</h1><ul class="hist" style="list-style:none;padding:0;margin:0">{% for u in recent %}<li><span class="tag {{ u.status }}">{{ 'تم التنفيذ' if u.status == 'done' else 'قيد التنفيذ' }}</span> {{ u.text[:140] or '(صور)' }}<br><small>{{ u.created_at.strftime('%Y-%m-%d') }}</small></li>{% endfor %}</ul></div>{% endif %}
+<div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span class="hint">تفضلون التواصل مباشرة؟</span>{% if sender_phone %}<a class="btn btn-wa" href="https://wa.me/{{ sender_phone }}?text={{ ('تعديل على موقع ' ~ client.company)|urlencode }}">واتساب {{ sender }}</a>{% endif %}</div>
+</div>
+<script>
+function add(s){var t=document.getElementById('t');t.value=(t.value?t.value+"\n":"")+s;t.focus();}
+function send(e){e.preventDefault();var f=e.target,b=document.getElementById('sb');b.disabled=true;b.textContent='جارٍ الإرسال…';
+  fetch(f.action,{method:'POST',body:new FormData(f)}).then(function(r){if(!r.ok)throw 0;location.href=location.pathname+'?sent=1';}).catch(function(){b.disabled=false;b.textContent='إرسال الطلب';alert('اكتبوا التعديل أو أرفقوا ملفًا');});return false;}
+</script>
+</body></html>

@@ -332,7 +332,19 @@ class ClientOut(BaseModel):
     status: str
     notes: str
     invoices: list[InvoiceOut] = []
+    update_token: str = ""
     model_config = {"from_attributes": True}
+
+
+class UpdateOut(BaseModel):
+    id: int
+    client_id: int
+    company: str = ""
+    text: str
+    photos: list[str]
+    status: str
+    created_at: datetime
+    done_at: Optional[datetime]
 
 
 # ---- discover ----

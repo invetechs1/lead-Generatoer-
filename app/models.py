@@ -133,10 +133,26 @@ class Client(Base):
     billing_day: Mapped[int] = mapped_column(Integer, default=1)
     status: Mapped[str] = mapped_column(String(20), default="active")  # onboarding | active | paused | cancelled
     notes: Mapped[str] = mapped_column(Text, default="")
+    update_token: Mapped[str] = mapped_column(String(48), default="", index=True)  # public /u/<token> content-update page
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
 
     lead = relationship("Lead", back_populates="client")
     invoices = relationship("Invoice", back_populates="client", cascade="all, delete-orphan")
+    updates = relationship("UpdateRequest", back_populates="client", cascade="all, delete-orphan")
+
+
+class UpdateRequest(Base):
+    """A content change the client asked for (new prices, menu, photos, hours) via their self-service page."""
+    __tablename__ = "update_requests"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    client_id: Mapped[int] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"), index=True)
+    text: Mapped[str] = mapped_column(Text, default="")
+    photos: Mapped[str] = mapped_column(Text, default="[]")  # JSON list of /uploads/... URLs
+    status: Mapped[str] = mapped_column(String(20), default="open", index=True)  # open | done
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now, index=True)
+    done_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    client = relationship("Client", back_populates="updates")
 
 
 class Invoice(Base):

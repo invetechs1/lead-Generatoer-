@@ -10,7 +10,8 @@ from .config import settings
 from .database import Base, engine, SessionLocal, ensure_columns
 from . import models  # noqa: F401  (register tables)
 from .seed import seed
-from .routers import auth, leads, templates, clients, dashboard, discover, proposals, whatsapp_webhook, payments
+from .services import scheduler
+from .routers import auth, leads, templates, clients, dashboard, discover, proposals, whatsapp_webhook, payments, updates
 
 STATIC = Path(__file__).parent / "static"
 
@@ -23,7 +24,10 @@ async def lifespan(app: FastAPI):
         print("schema: added columns", ", ".join(added))
     with SessionLocal() as db:
         seed(db)
+    if settings.SCHEDULER_ENABLED:
+        scheduler.start(SessionLocal)
     yield
+    scheduler.stop()
 
 
 app = FastAPI(title=settings.APP_NAME, version="1.0.0", lifespan=lifespan, docs_url="/api/docs", redoc_url=None, openapi_url="/api/openapi.json")
@@ -42,7 +46,7 @@ async def security_headers(request: Request, call_next):
     return resp
 
 
-for r in (auth.router, leads.router, templates.router, clients.router, dashboard.router, discover.router, proposals.router, whatsapp_webhook.router, payments.router):
+for r in (auth.router, leads.router, templates.router, clients.router, dashboard.router, discover.router, proposals.router, whatsapp_webhook.router, payments.router, updates.router):
     app.include_router(r)
 
 

@@ -4,7 +4,7 @@ from .auth import hash_password
 from .config import settings
 import secrets
 
-from .models import User, Template, Invoice
+from .models import User, Template, Invoice, Client
 
 TEMPLATES = [
     ("رسالة أولى — عامة", "first", "", """السلام عليكم، معك {sender}.
@@ -89,7 +89,8 @@ Shall I prepare a version with your name? (Reply STOP to opt out.)"""),
 تقرير موقعكم {site} لهذا الشهر:
 {stats}
 
-يعني عملاء جدد وصلوا لكم من قوقل مباشرة. حدّثنا المنيو/الخدمات مجانًا كالعادة — تبون نضيف أي شيء هذا الشهر؟"""),
+يعني عملاء جدد وصلوا لكم من قوقل مباشرة. حدّثنا المنيو/الخدمات مجانًا كالعادة — أرسلوا أي تعديل أو صور من هنا:
+{update_link}"""),
     ("تذكير فاتورة الاشتراك", "closing", "", """مرحبًا {name}، معك {sender} 🙏
 فاتورة اشتراك الموقع لهذا الشهر جاهزة:
 {invoice}
@@ -122,6 +123,8 @@ Shall I prepare a version with your name? (Reply STOP to opt out.)"""),
 def seed(db: Session) -> None:
     for inv in db.query(Invoice).filter(Invoice.token == ""):  # invoices created before payment links existed
         inv.token = secrets.token_urlsafe(18)
+    for c in db.query(Client).filter(Client.update_token == ""):
+        c.update_token = secrets.token_urlsafe(18)
     if not db.query(User).first():
         db.add(User(email=settings.ADMIN_EMAIL.lower(), name=settings.ADMIN_NAME, password_hash=hash_password(settings.ADMIN_PASSWORD), role="admin"))
     if not db.query(Template).first():

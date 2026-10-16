@@ -74,6 +74,14 @@ def invoice_url(lead, base_url: str = "") -> str:
     return f"{base}/inv/{inv.token}"
 
 
+def update_link(lead, base_url: str = "") -> str:
+    client = getattr(lead, "client", None)
+    if not client or not getattr(client, "update_token", ""):
+        return ""
+    base = (base_url or settings.PUBLIC_BASE_URL or "").rstrip("/")
+    return f"{base}/u/{client.update_token}"
+
+
 def render(body: str, lead, demo_url: str = "", sender: str = "", base_url: str = "") -> str:
     demo = proposal_url(lead, base_url) or personal_demo(demo_url or settings.DEMO_URL or "", lead)
     return (
@@ -81,6 +89,7 @@ def render(body: str, lead, demo_url: str = "", sender: str = "", base_url: str 
         .replace("{proposal}", proposal_url(lead, base_url))
         .replace("{site}", site_url(lead, base_url))
         .replace("{invoice}", invoice_url(lead, base_url))
+        .replace("{update_link}", update_link(lead, base_url))
         .replace("{stats}", stats_text(lead))
         .replace("{city}", lead.city or "")
         .replace("{sector}", lead.sector or "")

@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     WHATSAPP_VERIFY_TOKEN: str = ""  # any secret you choose; Meta sends it back on webhook verification
     WHATSAPP_APP_SECRET: str = ""  # Meta app secret, used to verify X-Hub-Signature-256 on webhooks
 
+    # In-app scheduler: marks overdue invoices, issues monthly invoices on day 1, builds the morning digest
+    SCHEDULER_ENABLED: bool = True
+    DIGEST_HOUR: int = 8  # Riyadh time (UTC+3)
+
     # Online payments (Moyasar: Mada, Apple Pay, cards, STC Pay). Empty = bank-transfer instructions on the invoice page.
     MOYASAR_PUBLISHABLE_KEY: str = ""
     MOYASAR_SECRET_KEY: str = ""

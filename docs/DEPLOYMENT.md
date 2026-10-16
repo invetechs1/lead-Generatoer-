@@ -248,6 +248,10 @@ docker compose exec api python scripts/audit_sites.py --db --max-score 60
 
 ---
 
+## 9b. Daily automation
+
+The `api` container runs a built-in scheduler thread (`SCHEDULER_ENABLED=true` by default). Every day after `DIGEST_HOUR` (08:00 Riyadh) it marks overdue invoices, issues the monthly invoices on the 1st, builds the morning digest shown on the dashboard, and sends it to the sales WhatsApp number when the Cloud API is configured. No cron needed. Run it manually from the dashboard (**تشغيل مهام اليوم الآن**) or `POST /api/jobs/run`. If you ever run two `api` replicas, keep the scheduler on only one (`SCHEDULER_ENABLED=false` on the others).
+
 ## 10. Operations
 
 **Update to a new version**

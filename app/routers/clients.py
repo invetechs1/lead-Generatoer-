@@ -42,7 +42,7 @@ def create(data: ClientIn, db: Session = Depends(get_db), user: User = Depends(c
             raise HTTPException(409, "Lead already converted")
         lead.status = "won"
         db.add(Activity(lead_id=lead.id, user_id=user.id, kind="status", content="converted to client"))
-    c = Client(**data.model_dump()); db.add(c); db.flush()
+    c = Client(**data.model_dump(), update_token=secrets.token_urlsafe(18)); db.add(c); db.flush()
     _issue(db, c, c.start_date.strftime("%Y-%m"))
     db.commit(); db.refresh(c)
     return c
