@@ -6,6 +6,39 @@ from pydantic import BaseModel, Field, field_validator, EmailStr
 from .models import LEAD_STATUSES
 
 
+_URL_RE = re.compile(r"^https?://[^\s<>\"']+$", re.I)
+_HANDLE_RE = re.compile(r"^@?[A-Za-z0-9._]{1,60}$")
+
+
+def clean_url(v: Optional[str], allow_bare_domain: bool = False) -> Optional[str]:
+    """Only http(s) URLs are stored (they end up in href/src attributes). Bare domains get https:// when allowed."""
+    if v is None:
+        return None
+    v = v.strip()
+    if not v:
+        return ""
+    if allow_bare_domain and not re.match(r"^https?://", v, re.I) and re.match(r"^[A-Za-z0-9.-]+\.[A-Za-z]{2,}(/.*)?$", v):
+        v = "https://" + v
+    if not _URL_RE.match(v) or len(v) > 400:
+        raise ValueError("must be an http(s) URL")
+    return v
+
+
+def clean_handle(v: Optional[str]) -> Optional[str]:
+    """Instagram: accept a handle or a profile URL; store the handle."""
+    if v is None:
+        return None
+    v = v.strip()
+    if not v:
+        return ""
+    m = re.match(r"^https?://(www\.)?instagram\.com/([A-Za-z0-9._]{1,60})/?", v, re.I)
+    if m:
+        v = m.group(2)
+    if not _HANDLE_RE.match(v):
+        raise ValueError("invalid instagram handle")
+    return v.lstrip("@")
+
+
 def normalize_phone(raw: str) -> str:
     d = re.sub(r"\D", "", raw or "")
     if d.startswith("00"):
@@ -73,6 +106,16 @@ class LeadIn(BaseModel):
     def _phone(cls, v: str) -> str:
         return normalize_phone(v)
 
+    @field_validator("website", "maps_url")
+    @classmethod
+    def _urls(cls, v):
+        return clean_url(v, allow_bare_domain=True)
+
+    @field_validator("instagram")
+    @classmethod
+    def _ig(cls, v):
+        return clean_handle(v)
+
 
 class LeadUpdate(BaseModel):
     name: Optional[str] = Field(default=None, max_length=200)
@@ -93,6 +136,16 @@ class LeadUpdate(BaseModel):
         if v is not None and v not in LEAD_STATUSES:
             raise ValueError(f"status must be one of {LEAD_STATUSES}")
         return v
+
+    @field_validator("website", "maps_url")
+    @classmethod
+    def _urls(cls, v):
+        return clean_url(v, allow_bare_domain=True)
+
+    @field_validator("instagram")
+    @classmethod
+    def _ig(cls, v):
+        return clean_handle(v)
 
 
 class LeadOut(BaseModel):
@@ -214,10 +267,44 @@ class AnswersIn(BaseModel):
         return [x[:40] for x in v]
 
 
+class LiveIn(BaseModel):
+    hours: list[list[str]] = Field(default_factory=list, max_length=7)  # [[label, value], ...]
+    address: str = Field(default="", max_length=200)
+    maps_url: str = Field(default="", max_length=400)
+    instagram: str = Field(default="", max_length=60)
+    phone: str = Field(default="", max_length=20)
+    email: str = Field(default="", max_length=190)
+
+    @field_validator("hours")
+    @classmethod
+    def _hours(cls, v):
+        out = []
+        for h in v:
+            if len(h) != 2:
+                raise ValueError("each hours row is [label, value]")
+            out.append([str(h[0])[:40], str(h[1])[:40]])
+        return out
+
+    @field_validator("maps_url")
+    @classmethod
+    def _maps(cls, v):
+        return clean_url(v, allow_bare_domain=True) or ""
+
+    @field_validator("instagram")
+    @classmethod
+    def _ig(cls, v):
+        return clean_handle(v) or ""
+
+    @field_validator("phone")
+    @classmethod
+    def _ph(cls, v):
+        return normalize_phone(v) if v.strip() else ""
+
+
 class PublishIn(BaseModel):
     slug: str = Field(min_length=3, max_length=80, pattern=r"^[a-z0-9][a-z0-9-]*[a-z0-9]$")
     custom_domain: str = Field(default="", max_length=200)
-    live: dict = Field(default_factory=dict)  # hours: list[[label, value]], address, maps_url, instagram, phone, email
+    live: LiveIn = Field(default_factory=LiveIn)
 
     @field_validator("custom_domain")
     @classmethod
@@ -283,6 +370,11 @@ class ClientIn(BaseModel):
     status: str = Field(default="onboarding", pattern="^(onboarding|active|paused|cancelled)$")
     notes: str = ""
 
+    @field_validator("site_url")
+    @classmethod
+    def _site(cls, v):
+        return clean_url(v, allow_bare_domain=True)
+
     @field_validator("phone")
     @classmethod
     def _phone(cls, v: str) -> str:
@@ -299,6 +391,11 @@ class ClientUpdate(BaseModel):
     billing_day: Optional[int] = Field(default=None, ge=1, le=28)
     status: Optional[str] = Field(default=None, pattern="^(onboarding|active|paused|cancelled)$")
     notes: Optional[str] = None
+
+    @field_validator("site_url")
+    @classmethod
+    def _site(cls, v):
+        return clean_url(v, allow_bare_domain=True)
 
 
 class InvoiceOut(BaseModel):

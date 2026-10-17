@@ -1,21 +1,19 @@
 """Public invoice/payment pages and gateway callbacks."""
 import json
 from datetime import datetime
-from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from ..auth import current_user
+from ..common import TEMPLATES, base_url as _base, rate_limit
 from ..config import settings
 from ..database import get_db
 from ..models import Invoice, Activity, Setting, User
 from ..services import payments
 
 router = APIRouter(tags=["payments"])
-TEMPLATES = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
 
 
 def _settings(db: Session) -> dict:
@@ -24,10 +22,6 @@ def _settings(db: Session) -> dict:
         if s.value:
             out[s.key] = s.value
     return out
-
-
-def _base(request: Request) -> str:
-    return (settings.PUBLIC_BASE_URL or str(request.base_url)).rstrip("/")
 
 
 def _page(request: Request, db: Session, inv: Invoice, state: str = "", message: str = ""):
@@ -51,7 +45,7 @@ def invoice_page(token: str, request: Request, db: Session = Depends(get_db)):
     return _page(request, db, inv)
 
 
-@router.get("/inv/{token}/callback", response_class=HTMLResponse, include_in_schema=False)
+@router.get("/inv/{token}/callback", response_class=HTMLResponse, include_in_schema=False, dependencies=[Depends(rate_limit("pay_callback", 30))])
 async def moyasar_callback(token: str, request: Request, id: str = "", status: str = "", message: str = "", db: Session = Depends(get_db)):
     """Moyasar redirects here after the hosted form. The payment is verified with the secret key before anything changes."""
     inv = db.query(Invoice).filter(Invoice.token == token).first()
@@ -75,13 +69,13 @@ async def moyasar_callback(token: str, request: Request, id: str = "", status: s
     return _page(request, db, inv, "paid")
 
 
-@router.post("/api/payments/moyasar/webhook", include_in_schema=False)
+@router.post("/api/payments/moyasar/webhook", include_in_schema=False, dependencies=[Depends(rate_limit("pay_webhook", 300))])
 async def moyasar_webhook(request: Request, db: Session = Depends(get_db)):
     """Moyasar webhook (dashboard → Webhooks, event payment_paid). The body carries secret_token; we still re-verify via API."""
     try:
         data = json.loads(await request.body() or b"{}")
     except ValueError:
-        raise HTTPException(400, "Bad JSON")
+        raise HTTPException(400, "Bad JSON") from None
     if settings.MOYASAR_WEBHOOK_SECRET and data.get("secret_token") != settings.MOYASAR_WEBHOOK_SECRET:
         raise HTTPException(403, "Bad secret")
     if data.get("type") != "payment_paid":
@@ -94,7 +88,7 @@ async def moyasar_webhook(request: Request, db: Session = Depends(get_db)):
     try:
         payment = await payments.fetch_payment(str(pdata.get("id", "")))
     except Exception as e:
-        raise HTTPException(502, f"verify failed: {e}")
+        raise HTTPException(502, f"verify failed: {e}") from e
     ok, why = payments.matches(payment, inv)
     if ok and payments.apply_paid(inv, payment):
         _log(db, inv, f"💳 دُفعت الفاتورة {inv.number} عبر Moyasar (webhook) — {inv.amount + inv.vat} ر.س")
@@ -102,7 +96,7 @@ async def moyasar_webhook(request: Request, db: Session = Depends(get_db)):
     return {"ok": ok, "why": why}
 
 
-@router.post("/api/public/invoice/{token}/transfer-notice")
+@router.post("/api/public/invoice/{token}/transfer-notice", dependencies=[Depends(rate_limit("transfer_notice", 5))])
 def transfer_notice(token: str, db: Session = Depends(get_db)):
     """Client pressed 'I have transferred' on the bank-transfer option: flag it for manual confirmation."""
     inv = db.query(Invoice).filter(Invoice.token == token).first()

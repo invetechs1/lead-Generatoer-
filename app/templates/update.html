@@ -20,7 +20,7 @@ label{display:block;font-weight:600;margin:14px 0 6px}textarea,input[type=file]{
 </head>
 <body><div class="wrap">
 <div class="card">
-  <h1>تحديث موقع {{ client.company }}</h1><p class="sub">اكتبوا التعديل المطلوب أو أرفقوا صورًا (منيو، أسعار، صور جديدة، أوقات العمل). ننفّذه خلال 24 ساعة ضمن اشتراككم، بدون أي رسوم إضافية.{% if client.site_url %} · <a href="{{ client.site_url }}" target="_blank" rel="noopener" style="text-decoration:underline">موقعكم الحالي</a>{% endif %}</p>
+  <h1>تحديث موقع {{ client.company }}</h1><p class="sub">اكتبوا التعديل المطلوب أو أرفقوا صورًا (منيو، أسعار، صور جديدة، أوقات العمل). ننفّذه خلال 24 ساعة ضمن اشتراككم، بدون أي رسوم إضافية.{% if client.site_url %} · <a href="{{ client.site_url|safe_href }}" target="_blank" rel="noopener" style="text-decoration:underline">موقعكم الحالي</a>{% endif %}</p>
   {% if sent %}<div class="ok">✅ وصلنا طلبكم، سننفّذه ونبلغكم على واتساب.</div>{% endif %}
   <form method="post" action="/api/public/update/{{ client.update_token }}" enctype="multipart/form-data" onsubmit="return send(event)">
     <label>ماذا تريدون تغييره؟</label>

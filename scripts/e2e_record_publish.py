@@ -1,5 +1,5 @@
 """Video 4: approve → publish the proposal as the live site → visitor clicks WhatsApp/call → stats show in CRM."""
-import json, httpx
+import httpx
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 BASE = "http://127.0.0.1:8765"; OUT = Path("./e2e_out"); import os

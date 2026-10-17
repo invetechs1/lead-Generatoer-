@@ -37,6 +37,8 @@ python scripts/audit_sites.py data/leads_with_website_<date>.csv --max-score 60
 ```
 
 ## Security
+- Review of everything added after v1.0, with findings and fixes: `docs/SECURITY_REVIEW.md`
+- Public pages: only http(s) URLs are stored or rendered in links; uploads are checked by magic bytes; public write endpoints are rate-limited per IP; webhooks fail closed without their secrets; payments are re-verified server-side
 - bcrypt password hashing, HS256 JWT (12h default), login rate-limit (10 tries / 5 min / IP)
 - Role-based authorization on every mutating admin endpoint
 - Pydantic validation on all input; SQLAlchemy ORM only (no raw SQL)
@@ -66,7 +68,7 @@ Backups land in `./backups/` daily. Restore: `gunzip -c backups/bassir-YYYY-MM-D
 
 ## Tests
 ```bash
-python -m pytest -q tests     # 28 tests: auth, RBAC, phone normalization, CSV import, send + cap, billing, dashboard, site audit, demo pages
+python -m pytest -q tests     # 40 tests: auth, RBAC, phone normalization, CSV import, send + cap, billing, dashboard, site audit, demo pages
 ```
 
 ## Daily workflow

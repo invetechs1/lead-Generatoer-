@@ -67,7 +67,7 @@ def test_moyasar_callback_and_webhook(client, auth, monkeypatch):
     c = client.post("/api/clients", json={"lead_id": lead["id"], "company": "مطعم الزاد", "phone": "0577778888"}, headers=auth).json()
     inv = c["invoices"][0]
     html = client.get(f"/inv/{inv['token']}").text
-    assert "Moyasar.init" in html and "amount:115000" in html and f"invoice_token:'{inv['token']}'" in html and "/callback" in html
+    assert "Moyasar.init" in html and "amount:115000" in html and f'invoice_token:"{inv["token"]}"' in html and "/callback" in html
 
     calls = {}
     async def fake_fetch(pid):

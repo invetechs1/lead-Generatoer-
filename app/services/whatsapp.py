@@ -161,9 +161,9 @@ async def send_payload(payload: dict) -> dict:
 
 
 def verify_signature(raw_body: bytes, signature_header: str) -> bool:
-    """X-Hub-Signature-256: sha256=<hmac>. Skipped (returns True) when WHATSAPP_APP_SECRET is not configured."""
+    """X-Hub-Signature-256: sha256=<hmac>. Always False when WHATSAPP_APP_SECRET is not configured (fail closed)."""
     if not settings.WHATSAPP_APP_SECRET:
-        return True
+        return False
     if not signature_header or not signature_header.startswith("sha256="):
         return False
     expected = hmac.new(settings.WHATSAPP_APP_SECRET.encode(), raw_body, hashlib.sha256).hexdigest()

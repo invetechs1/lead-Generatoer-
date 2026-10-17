@@ -15,9 +15,9 @@ async def discover(data: DiscoverIn, db: Session = Depends(get_db), user: User =
     try:
         raw = await places.search(data.query, data.city, data.max_results)
     except RuntimeError as e:
-        raise HTTPException(400, str(e))
+        raise HTTPException(400, str(e)) from e
     except Exception as e:  # network / quota
-        raise HTTPException(502, f"Google Places error: {e}")
+        raise HTTPException(502, f"Google Places error: {e}") from e
     existing = {p for (p,) in db.query(Lead.phone)}
     out = []
     for r in raw:

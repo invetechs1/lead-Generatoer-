@@ -47,7 +47,7 @@ h2{font-size:18px;margin:0 0 12px}
 {% if moyasar_key %}
 <div class="card noprint"><h2>الدفع الإلكتروني</h2><p class="hint" style="margin:0 0 6px">مدى · فيزا/ماستركارد · Apple Pay · STC Pay — آمن عبر Moyasar</p>
   <div class="mysr-form"></div>
-  <script>Moyasar.init({element:'.mysr-form',amount:{{ amount_halalas }},currency:'SAR',description:'{{ s.sender_name }} — {{ inv.number }} ({{ inv.period }})',publishable_api_key:'{{ moyasar_key }}',callback_url:'{{ callback_url }}',methods:['creditcard','applepay','stcpay'],metadata:{invoice_token:'{{ inv.token }}',invoice:'{{ inv.number }}'},apple_pay:{country:'SA',label:'{{ s.sender_name }}',validate_merchant_url:'https://api.moyasar.com/v1/applepay/initiate'}});</script></div>
+  <script>Moyasar.init({element:'.mysr-form',amount:{{ amount_halalas|int }},currency:'SAR',description:{{ (s.sender_name ~ ' — ' ~ inv.number ~ ' (' ~ inv.period ~ ')')|tojson }},publishable_api_key:{{ moyasar_key|tojson }},callback_url:{{ callback_url|tojson }},methods:['creditcard','applepay','stcpay'],metadata:{invoice_token:{{ inv.token|tojson }},invoice:{{ inv.number|tojson }}},apple_pay:{country:'SA',label:{{ s.sender_name|tojson }},validate_merchant_url:'https://api.moyasar.com/v1/applepay/initiate'}});</script></div>
 {% endif %}
 {% if s.iban %}
 <div class="card noprint"><h2>{% if moyasar_key %}أو {% endif %}تحويل بنكي</h2>

@@ -4,13 +4,12 @@ from __future__ import annotations
 
 import asyncio
 import threading
-import time
 from datetime import date, datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
 from ..config import settings
-from ..models import Setting, Invoice, Client, Activity
+from ..models import Setting, Invoice, Client
 
 RIYADH = timezone(timedelta(hours=3))
 _stop = threading.Event()

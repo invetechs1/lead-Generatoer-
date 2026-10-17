@@ -6,18 +6,17 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from ..auth import current_user
+from ..common import TEMPLATES, setting as _setting, base_url as _base_url, rate_limit, upload_ok
 from ..config import settings
 from ..database import get_db
-from ..models import Lead, Proposal, Activity, User, Setting, SiteEvent, Client
+from ..models import Lead, Proposal, Activity, User, SiteEvent, Client
 from ..schemas import ProposalIn, ProposalOut, BriefPatch, AnswersIn, PublishIn, SiteStats
 from ..services import designer, places
 
 router = APIRouter(tags=["proposals"])
-TEMPLATES = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
 ALLOWED_EXT = {".jpg", ".jpeg", ".png", ".webp"}
 MAX_UPLOAD = 8 * 1024 * 1024
 
@@ -32,15 +31,6 @@ def photo_urls(lead_id: int) -> list[str]:
     d = upload_dir(lead_id)
     files = sorted([f for f in d.iterdir() if f.suffix.lower() in ALLOWED_EXT], key=lambda f: f.name)
     return [f"/uploads/leads/{lead_id}/{f.name}" for f in files]
-
-
-def _setting(db: Session, key: str, default: str) -> str:
-    s = db.get(Setting, key)
-    return s.value if s and s.value else default
-
-
-def _base_url(request: Request) -> str:
-    return (settings.PUBLIC_BASE_URL or str(request.base_url)).rstrip("/")
 
 
 def live_url(p: Proposal, base: str) -> str:
@@ -77,7 +67,7 @@ async def upload_photos(lead_id: int, files: list[UploadFile] = File(...), db: S
         if ext not in ALLOWED_EXT:
             continue
         data = await f.read()
-        if len(data) > MAX_UPLOAD or not data:
+        if not upload_ok(ext, data, MAX_UPLOAD):  # extension + magic bytes + size
             continue
         name = f"up_{secrets.token_hex(4)}{ext}"
         (d / name).write_bytes(data)
@@ -103,9 +93,9 @@ async def fetch_google_photos(lead_id: int, db: Session = Depends(get_db), user:
     try:
         pid, names = await places.photo_names(lead.place_id, lead.name, lead.city)
     except RuntimeError as e:
-        raise HTTPException(400, str(e))
+        raise HTTPException(400, str(e)) from e
     except Exception as e:
-        raise HTTPException(502, f"Google Places error: {e}")
+        raise HTTPException(502, f"Google Places error: {e}") from e
     if pid and not lead.place_id:
         lead.place_id = pid
     saved = await places.download_photos(names, upload_dir(lead_id)) if names else []
@@ -167,7 +157,7 @@ def edit_proposal(lead_id: int, data: BriefPatch, request: Request, db: Session 
     try:
         brief = designer.Brief.model_validate(merged)  # keeps the page renderable
     except Exception as e:
-        raise HTTPException(422, f"Invalid brief: {e}")
+        raise HTTPException(422, f"Invalid brief: {e}") from e
     p.brief = brief.model_dump_json(); p.kind = brief.kind
     db.commit(); db.refresh(p)
     return _out(p, _base_url(request))
@@ -192,7 +182,7 @@ def public_proposal(token: str, request: Request, db: Session = Depends(get_db))
     return _render(request, db, p, "proposal")
 
 
-@router.post("/api/public/proposal/{token}/answers")
+@router.post("/api/public/proposal/{token}/answers", dependencies=[Depends(rate_limit("answers", 10))])
 def public_answers(token: str, data: AnswersIn, db: Session = Depends(get_db)):
     """Called by the proposal page when the client taps their choices. No auth (token is the secret)."""
     p = db.query(Proposal).filter(Proposal.token == token).first()
@@ -201,7 +191,7 @@ def public_answers(token: str, data: AnswersIn, db: Session = Depends(get_db)):
     lead = p.lead
     p.answers = data.model_dump_json()
     p.answered_at = datetime.utcnow()
-    lines = [f"🎯 العميل أجاب على أسئلة العرض:", f"- النمط: {data.style or '-'}", f"- الأهم: {'، '.join(data.priorities) or '-'}", f"- التوقيت: {data.timing or '-'}"]
+    lines = ["🎯 العميل أجاب على أسئلة العرض:", f"- النمط: {data.style or '-'}", f"- الأهم: {'، '.join(data.priorities) or '-'}", f"- التوقيت: {data.timing or '-'}"]
     if data.notes:
         lines.append(f"- ملاحظات: {data.notes}")
     if data.wants_start:
@@ -246,7 +236,7 @@ def publish(lead_id: int, data: PublishIn, request: Request, db: Session = Depen
         raise HTTPException(409, "Slug already used")
     if data.custom_domain and db.query(Proposal).filter(Proposal.custom_domain == data.custom_domain, Proposal.id != p.id).first():
         raise HTTPException(409, "Domain already used")
-    p.slug, p.custom_domain, p.live = data.slug, data.custom_domain, json.dumps(data.live, ensure_ascii=False)
+    p.slug, p.custom_domain, p.live = data.slug, data.custom_domain, data.live.model_dump_json()
     p.published, p.published_at = True, datetime.utcnow()
     base = _base_url(request)
     url = live_url(p, base)
@@ -282,15 +272,20 @@ def live_site(slug: str, request: Request, db: Session = Depends(get_db)):
 
 
 _domain_cache: dict[str, bool] = {}
+_DOMAIN_CACHE_MAX = 2000  # arbitrary Host headers must not grow memory without bound
 
 
 def is_custom_domain(host: str) -> bool:
     """Cheap check used by the SPA catch-all on every request; cached until the next publish."""
+    if len(host) > 253:
+        return False
     if host in _domain_cache:
         return _domain_cache[host]
     from ..database import SessionLocal
     with SessionLocal() as db:
         hit = db.query(Proposal.id).filter(Proposal.custom_domain == host, Proposal.published == True).first() is not None  # noqa: E712
+    if len(_domain_cache) >= _DOMAIN_CACHE_MAX:
+        _domain_cache.clear()
     _domain_cache[host] = hit
     return hit
 
@@ -303,7 +298,7 @@ def render_live_by_domain(host: str, request: Request, db: Session):
     return _render(request, db, p, "live")
 
 
-@router.post("/api/public/site/{slug}/event", status_code=204)
+@router.post("/api/public/site/{slug}/event", status_code=204, dependencies=[Depends(rate_limit("site_event", 60))])
 def site_event(slug: str, kind: str, db: Session = Depends(get_db)):
     """Beacon from the live site: a visitor tapped WhatsApp / call / map / form."""
     if kind not in ("wa", "call", "map", "form"):

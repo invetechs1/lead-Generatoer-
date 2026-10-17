@@ -7,28 +7,18 @@ from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Form
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from ..auth import current_user, admin_only
+from ..common import TEMPLATES, setting as _setting, base_url as _base, rate_limit, upload_ok
 from ..config import settings
 from ..database import get_db
-from ..models import Client, UpdateRequest, Activity, Setting, User
+from ..models import Client, UpdateRequest, Activity, User
 from ..schemas import UpdateOut
 from ..services import digest, scheduler
 
 router = APIRouter(tags=["updates"])
-TEMPLATES = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
 ALLOWED_EXT = {".jpg", ".jpeg", ".png", ".webp", ".pdf"}
-
-
-def _setting(db: Session, key: str, default: str = "") -> str:
-    s = db.get(Setting, key)
-    return s.value if s and s.value else default
-
-
-def _base(request: Request) -> str:
-    return (settings.PUBLIC_BASE_URL or str(request.base_url)).rstrip("/")
 
 
 # ---------------- digest ----------------
@@ -64,7 +54,7 @@ def update_page(token: str, request: Request, db: Session = Depends(get_db)):
     return TEMPLATES.TemplateResponse(request, "update.html", {"client": c, "recent": recent, "sender": _setting(db, "sender_name", settings.SENDER_NAME), "sender_phone": _setting(db, "sender_phone"), "sent": request.query_params.get("sent") == "1"})
 
 
-@router.post("/api/public/update/{token}")
+@router.post("/api/public/update/{token}", dependencies=[Depends(rate_limit("client_update", 10))])
 async def submit_update(token: str, text: str = Form(""), files: list[UploadFile] = File(default=[]), db: Session = Depends(get_db)):
     c = db.query(Client).filter(Client.update_token == token).first()
     if not c:
@@ -77,7 +67,7 @@ async def submit_update(token: str, text: str = Form(""), files: list[UploadFile
         for f in files[:10]:
             ext = Path(f.filename or "").suffix.lower()
             data = await f.read()
-            if ext not in ALLOWED_EXT or not data or len(data) > 10 * 1024 * 1024:
+            if ext not in ALLOWED_EXT or not upload_ok(ext, data, 10 * 1024 * 1024):
                 continue
             name = f"{secrets.token_hex(4)}{ext}"
             (d / name).write_bytes(data)

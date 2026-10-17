@@ -12,6 +12,7 @@ from ..database import get_db
 from ..models import Lead, Activity, User
 from ..schemas import ButtonsSendIn
 from ..services import whatsapp
+from ..common import rate_limit
 
 router = APIRouter(prefix="/api/whatsapp", tags=["whatsapp"])
 STOP_WORDS = ("إيقاف", "ايقاف", "لا أريد", "لا اريد", "stop", "unsubscribe", "لا ترسل", "ما ابغى", "ما أبغى")
@@ -24,15 +25,17 @@ def verify(hub_mode: str = Query("", alias="hub.mode"), hub_token: str = Query("
     raise HTTPException(403, "Verification failed")
 
 
-@router.post("/webhook", include_in_schema=False)
+@router.post("/webhook", include_in_schema=False, dependencies=[Depends(rate_limit("wa_webhook", 600))])
 async def receive(request: Request, db: Session = Depends(get_db)):
+    if not settings.WHATSAPP_APP_SECRET:
+        raise HTTPException(503, "Webhook disabled: set WHATSAPP_APP_SECRET so inbound posts can be verified")
     raw = await request.body()
     if not whatsapp.verify_signature(raw, request.headers.get("X-Hub-Signature-256", "")):
         raise HTTPException(403, "Bad signature")
     try:
         data = json.loads(raw or b"{}")
     except ValueError:
-        raise HTTPException(400, "Bad JSON")
+        raise HTTPException(400, "Bad JSON") from None
     handled = 0
     for ev in whatsapp.parse_webhook(data):
         if ev["kind"] == "status":
@@ -81,7 +84,7 @@ async def send_buttons(lead_id: int, data: ButtonsSendIn, db: Session = Depends(
     try:
         res = await whatsapp.send_payload(payload)
     except Exception as e:
-        raise HTTPException(502, f"WhatsApp error: {e}")
+        raise HTTPException(502, f"WhatsApp error: {e}") from e
     db.add(Activity(lead_id=lead.id, user_id=user.id, kind="whatsapp", channel="wa_api", content=data.body + "\n[" + " | ".join(b.get("title", "") for b in data.buttons) + "]"))
     db.commit()
     return {"ok": True, "response": res}

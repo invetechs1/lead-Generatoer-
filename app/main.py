@@ -12,12 +12,28 @@ from . import models  # noqa: F401  (register tables)
 from .seed import seed
 from .services import scheduler
 from .routers import auth, leads, templates, clients, dashboard, discover, proposals, whatsapp_webhook, payments, updates
+from .common import KIND_RE
 
 STATIC = Path(__file__).parent / "static"
 
 
+def startup_warnings() -> list[str]:
+    out = []
+    if settings.SECRET_KEY in ("dev-secret-change-me", "change-me-to-a-64-char-random-string") or len(settings.SECRET_KEY) < 32:
+        out.append("SECRET_KEY is the default or shorter than 32 chars — set a random 64-char value in .env")
+    if settings.ADMIN_PASSWORD == "ChangeMe123!":
+        out.append("ADMIN_PASSWORD is the example value — change it (and the admin password in Settings)")
+    if settings.ALLOWED_ORIGINS.strip() in ("", "*") and not settings.DATABASE_URL.startswith("sqlite"):
+        out.append("ALLOWED_ORIGINS is '*' on a non-dev database — set it to your https origin")
+    if settings.WHATSAPP_TOKEN and not settings.WHATSAPP_APP_SECRET:
+        out.append("WHATSAPP_APP_SECRET is empty — inbound webhook posts are rejected until it is set")
+    return out
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    for warning in startup_warnings():
+        print("SECURITY WARNING:", warning)
     Base.metadata.create_all(bind=engine)
     added = ensure_columns(engine)
     if added:
@@ -63,8 +79,8 @@ app.mount("/uploads", StaticFiles(directory=UPLOADS), name="uploads")
 @app.get("/demo/{kind}", include_in_schema=False)
 def demo(kind: str):
     """Sample websites shared with leads. Personalised via ?n=<name>&c=<city>&p=<phone>&s=<sector> (see services.whatsapp.personal_demo)."""
-    f = STATIC / "demo" / f"{kind}.html"
-    if not f.is_file():
+    f = STATIC / "demo" / f"{kind}.html" if KIND_RE.match(kind) else None
+    if not f or not f.is_file():
         f = STATIC / "demo" / "business.html"
     return FileResponse(f, headers={"Cache-Control": "public, max-age=300", "X-Frame-Options": "SAMEORIGIN"})
 

@@ -12,9 +12,13 @@ import mimetypes
 from pathlib import Path
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field
+import re
+
+from pydantic import BaseModel, Field, field_validator
 
 from ..config import settings
+
+FONTS = {"Cairo", "Almarai", "Tajawal", "IBM Plex Sans Arabic", "Noto Kufi Arabic", "Amiri", "Changa", "El Messiri", "Markazi Text", "Readex Pro"}
 
 Kind = Literal["restaurant", "clinic", "beauty", "contractor", "realestate", "education", "auto", "fitness", "retail", "business"]
 
@@ -53,6 +57,29 @@ class Brief(BaseModel):
     offer_title: str = Field(default="موقع احترافي كامل بـ 1,000 ر.س شهريًا", max_length=80)
     offer_points: list[str] = Field(default_factory=list, max_length=6)
     design_rationale: str = Field(max_length=400, description="Why this palette/mood fits this business (shown to the salesperson, not the client)")
+
+    @field_validator("palette")
+    @classmethod
+    def _palette(cls, v: dict[str, str]) -> dict[str, str]:
+        out = {}
+        for k in ("primary", "accent", "dark", "light", "paper"):
+            val = str(v.get(k, "")).strip()
+            if k == "paper" and not val:
+                val = "#FFFFFF"
+            if not re.fullmatch(r"#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?|#[0-9A-Fa-f]{3}", val):
+                raise ValueError(f"palette.{k} must be a hex color")
+            out[k] = val
+        return out
+
+    @field_validator("font_display", "font_body")
+    @classmethod
+    def _font(cls, v: str) -> str:
+        return v if v in FONTS else "Cairo"
+
+    @field_validator("hero_photo")
+    @classmethod
+    def _hero(cls, v: int) -> int:
+        return max(-1, min(int(v), 20))
 
 
 SYSTEM = """أنت مدير إبداعي ومصمم جرافيك أول (Senior Art Director) متخصص في هوية العلامات التجارية ومواقع الأعمال الصغيرة في السعودية.

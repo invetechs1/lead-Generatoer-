@@ -9,18 +9,14 @@ from sqlalchemy import or_, func
 from sqlalchemy.orm import Session
 
 from ..auth import current_user
+from ..common import setting as _setting
 from ..database import get_db
-from ..models import Lead, Activity, Template, User, Setting, LEAD_STATUSES
+from ..models import Lead, Activity, Template, User, LEAD_STATUSES
 from ..schemas import LeadIn, LeadUpdate, LeadOut, LeadPage, ImportResult, SendIn, SendOut, ActivityIn, ActivityOut, AuditOut, normalize_phone
 from ..services import whatsapp, site_audit
 from ..config import settings
 
 router = APIRouter(prefix="/api/leads", tags=["leads"])
-
-
-def _setting(db: Session, key: str, default: str) -> str:
-    s = db.get(Setting, key)
-    return s.value if s and s.value else default
 
 
 @router.get("", response_model=LeadPage)

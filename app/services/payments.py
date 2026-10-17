@@ -39,7 +39,7 @@ def matches(payment: dict, inv) -> tuple[bool, str]:
     if int(payment.get("amount", 0)) != halalas(inv):
         return False, f"amount {payment.get('amount')} != {halalas(inv)}"
     meta = payment.get("metadata") or {}
-    if meta.get("invoice_token") and meta["invoice_token"] != inv.token:
+    if meta.get("invoice_token") != inv.token:  # a payment created for another invoice (or outside our form) never counts
         return False, "token mismatch"
     return True, "ok"
 

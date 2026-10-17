@@ -9,9 +9,9 @@ Video 1 (crm):      login → dashboard → add lead → CSV import → open lea
 Video 2 (proposal): designer drawer → upload photos → generate → client opens page (desktop) → taps answers → CRM shows answers → convert → billing → dashboard
 Video 3 (mobile):   the proposal page on a phone viewport
 """
-import io, json, sys, time
+import json
 from pathlib import Path
-from playwright.sync_api import sync_playwright, expect
+from playwright.sync_api import sync_playwright
 
 BASE = "http://127.0.0.1:8765"
 OUT = Path("./e2e_out"); OUT.mkdir(exist_ok=True)

@@ -56,7 +56,7 @@ def main() -> None:
             print(f"auditing {len(leads)} leads with a website...", file=sys.stderr)
             results = asyncio.run(audit_many([l.website for l in leads], a.concurrency))
             weak = 0
-            for l, r in zip(leads, results):
+            for l, r in zip(leads, results, strict=True):
                 l.site_score = r.score
                 l.site_issues = "\n".join(r.issues)
                 if r.score <= a.max_score:
@@ -73,7 +73,7 @@ def main() -> None:
     print(f"auditing {len(rows)} sites...", file=sys.stderr)
     results = asyncio.run(audit_many([r["website"] for r in rows], a.concurrency))
     out = []
-    for r, res in zip(rows, results):
+    for r, res in zip(rows, results, strict=True):
         r["site_score"] = res.score
         r["site_issues"] = "\n".join(res.issues)
         if res.score <= a.max_score:

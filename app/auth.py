@@ -35,7 +35,7 @@ def current_user(creds: HTTPAuthorizationCredentials = Depends(bearer), db: Sess
     try:
         payload = jwt.decode(creds.credentials, settings.SECRET_KEY, algorithms=["HS256"])
     except jwt.PyJWTError:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid or expired token")
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid or expired token") from None
     user = db.get(User, int(payload["sub"]))
     if not user or not user.is_active:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User inactive")
