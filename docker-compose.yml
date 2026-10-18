@@ -48,7 +48,8 @@ services:
       PGPASSWORD: ${POSTGRES_PASSWORD:-bassir}
     volumes:
       - ./backups:/backups
-    entrypoint: ["sh", "-c", "while true; do pg_dump -h db -U bassir bassir | gzip > /backups/bassir-$(date +%F).sql.gz; find /backups -name '*.sql.gz' -mtime +30 -delete; sleep 86400; done"]
+      - uploads:/uploads:ro
+    entrypoint: ["sh", "-c", "while true; do pg_dump -h db -U bassir bassir | gzip > /backups/bassir-$(date +%F).sql.gz; tar czf /backups/uploads-$(date +%F).tgz -C /uploads . 2>/dev/null; find /backups \\( -name '*.sql.gz' -o -name '*.tgz' \\) -mtime +30 -delete; sleep 86400; done"]
     depends_on:
       db:
         condition: service_healthy

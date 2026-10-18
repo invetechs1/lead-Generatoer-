@@ -4,7 +4,7 @@ from .auth import hash_password
 from .config import settings
 import secrets
 
-from .models import User, Template, Invoice, Client
+from .models import User, Template, Invoice, Client, Agreement
 
 TEMPLATES = [
     ("رسالة أولى — عامة", "first", "", """السلام عليكم، معك {sender}.
@@ -116,7 +116,9 @@ Shall I prepare a version with your name? (Reply STOP to opt out.)"""),
 3) رقم الواتساب وموقعكم على الخريطة وأوقات العمل
 4) اسم النطاق المفضّل (.com أو .sa)
 
-أرسل لكم العقد والفاتورة الأولى الآن، والموقع يكون جاهز خلال 48 ساعة من استلام المواد."""),
+الاتفاقية (توقيع إلكتروني خلال دقيقة): {contract}
+الفاتورة الأولى: {invoice}
+والموقع يكون جاهز خلال 48 ساعة من استلام المواد."""),
 ]
 
 
@@ -125,6 +127,10 @@ def seed(db: Session) -> None:
         inv.token = secrets.token_urlsafe(18)
     for c in db.query(Client).filter(Client.update_token == ""):
         c.update_token = secrets.token_urlsafe(18)
+    if db.query(Client).count():
+        from .services import terms
+        for c in db.query(Client).filter(~Client.id.in_(db.query(Agreement.client_id))):
+            db.add(Agreement(client_id=c.id, token=secrets.token_urlsafe(18), terms_version=terms.version(db), terms_snapshot=terms.render(db, c)))
     if not db.query(User).first():
         db.add(User(email=settings.ADMIN_EMAIL.lower(), name=settings.ADMIN_NAME, password_hash=hash_password(settings.ADMIN_PASSWORD), role="admin"))
     if not db.query(Template).first():

@@ -430,7 +430,31 @@ class ClientOut(BaseModel):
     notes: str
     invoices: list[InvoiceOut] = []
     update_token: str = ""
+    agreement_token: str = ""
+    agreement_accepted_at: Optional[datetime] = None
     model_config = {"from_attributes": True}
+
+
+class AgreementOut(BaseModel):
+    client_id: int
+    token: str
+    url: str
+    terms_version: str
+    accepted_at: Optional[datetime]
+    accepted_name: str
+    created_at: datetime
+
+
+class AcceptIn(BaseModel):
+    name: str = Field(min_length=2, max_length=120)
+    agree: bool
+
+    @field_validator("agree")
+    @classmethod
+    def _must(cls, v: bool) -> bool:
+        if not v:
+            raise ValueError("agreement must be confirmed")
+        return v
 
 
 class UpdateOut(BaseModel):

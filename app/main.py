@@ -11,7 +11,7 @@ from .database import Base, engine, SessionLocal, ensure_columns
 from . import models  # noqa: F401  (register tables)
 from .seed import seed
 from .services import scheduler
-from .routers import auth, leads, templates, clients, dashboard, discover, proposals, whatsapp_webhook, payments, updates
+from .routers import auth, leads, templates, clients, dashboard, discover, proposals, whatsapp_webhook, payments, updates, agreements
 from .common import KIND_RE
 
 STATIC = Path(__file__).parent / "static"
@@ -62,7 +62,7 @@ async def security_headers(request: Request, call_next):
     return resp
 
 
-for r in (auth.router, leads.router, templates.router, clients.router, dashboard.router, discover.router, proposals.router, whatsapp_webhook.router, payments.router, updates.router):
+for r in (auth.router, leads.router, templates.router, clients.router, dashboard.router, discover.router, proposals.router, whatsapp_webhook.router, payments.router, updates.router, agreements.router):
     app.include_router(r)
 
 

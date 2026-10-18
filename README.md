@@ -17,6 +17,7 @@ Full-stack system for the "website-as-a-subscription" campaign (SAR 1,000/month)
 | Payments | Every invoice has a public page `/inv/<token>` (simplified tax invoice: VAT number, 15% VAT, status). With Moyasar keys it embeds the hosted form (**Mada, Apple Pay, cards, STC Pay**); the callback and webhook re-verify the payment with the secret key and match the amount before marking paid. Without keys it shows your IBAN with an "I transferred" button that flags the invoice for confirmation. `{invoice}` placeholder + seeded reminder template; one-tap WhatsApp reminder per invoice on the Clients page |
 | Morning digest | Dashboard card + one-tap "send to my WhatsApp": follow-ups due, leads in negotiation, proposals opened/answered yesterday, transfer notices to confirm, overdue invoices, open update requests. A built-in scheduler (no cron) runs daily after 08:00 Riyadh: marks overdue invoices, issues monthly invoices on day 1, stores the digest and sends it via the Cloud API when configured |
 | Client updates | Each client gets a self-service page `/u/<token>` to send price/menu/photo/hours changes (quick chips + files). Requests land on the dashboard with photos, are logged on the lead, and are marked done with one tap. `{update_link}` placeholder is in the monthly report template |
+| Agreements | Every client gets a subscription agreement at `/c/<token>` (default Arabic terms: scope, fee + VAT, monthly renewal, 30-day notice, late payment, content ownership, PDPL). Terms are editable in Settings with placeholders and a version; the client e-signs with name + checkbox and the system records time, IP, browser and the exact text accepted. Status shows on the Clients page; `{contract}` is in the closing template |
 | Schema updates | On startup the app creates missing tables **and adds missing columns** to existing ones (`database.ensure_columns`), so upgrades need no manual SQL |
 | Sample sites | `/demo/restaurant` and `/demo/business` — professional RTL sample websites, **personalised per lead** (`?n=name&c=city&p=phone&s=sector`); `{demo}` in templates becomes the lead's own link automatically |
 | Pipeline | new → contacted → replied → demo_sent → negotiating → won / lost / do_not_contact, full activity timeline (WhatsApp, calls, notes, status changes) |
@@ -64,11 +65,11 @@ docker compose up -d --build
 docker run --rm -v bassir-leads_certs:/etc/letsencrypt -v bassir-leads_certs-www:/var/www/certbot certbot/certbot certonly --webroot -w /var/www/certbot -d YOUR-DOMAIN --agree-tos -m you@bassir.net
 # then uncomment the 443 block in nginx/nginx.conf and: docker compose restart nginx
 ```
-Backups land in `./backups/` daily. Restore: `gunzip -c backups/bassir-YYYY-MM-DD.sql.gz | docker compose exec -T db psql -U bassir bassir`.
+Backups land in `./backups/` daily (database dump + uploads archive). Restore: `gunzip -c backups/bassir-YYYY-MM-DD.sql.gz | docker compose exec -T db psql -U bassir bassir`.
 
 ## Tests
 ```bash
-python -m pytest -q tests     # 40 tests: auth, RBAC, phone normalization, CSV import, send + cap, billing, dashboard, site audit, demo pages
+python -m pytest -q tests     # 41 tests: auth, RBAC, phone normalization, CSV import, send + cap, billing, dashboard, site audit, demo pages
 ```
 
 ## Daily workflow
@@ -82,7 +83,7 @@ python -m pytest -q tests     # 40 tests: auth, RBAC, phone normalization, CSV i
 `name,phone,city,sector,instagram,website,maps_url,notes` — Arabic headers (الاسم, الجوال, المدينة, النشاط, ملاحظات) also accepted. Phones in any format (05…, +966…, 00966…).
 
 ## Template placeholders
-`{name} {city} {activity}/{sector} {website} {issues} {demo} {proposal} {site} {stats} {invoice} {update_link} {sender}` — `{issues}` is the bullet list from the site audit, `{proposal}` is the designed proposal link (`{demo}` also resolves to it once a proposal exists, otherwise to the personalised sample site).
+`{name} {city} {activity}/{sector} {website} {issues} {demo} {proposal} {site} {stats} {invoice} {update_link} {contract} {sender}` — `{issues}` is the bullet list from the site audit, `{proposal}` is the designed proposal link (`{demo}` also resolves to it once a proposal exists, otherwise to the personalised sample site).
 
 ## Proposal workflow (what makes a client say yes)
 1. Open the lead → **🎨 عرض مصمم** → upload their logo/photos or **جلب صورهم من قوقل** (their own Maps photos).

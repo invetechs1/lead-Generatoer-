@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
+<title>اتفاقية اشتراك — {{ client.company }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--night:#12263A;--saffron:#E0A33A;--paper:#F4F5F7;--ink:#171717;--mut:#66707A;--line:#E3E6EA;--ok:#2E7D4F;--wa:#25D366}
+*{box-sizing:border-box}body{margin:0;font-family:"IBM Plex Sans Arabic",system-ui,sans-serif;background:var(--paper);color:var(--ink);line-height:1.8}
+.wrap{max-width:760px;margin:0 auto;padding:24px 16px 60px}
+.card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:28px;margin-bottom:16px}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:16px}
+.brand{font-weight:700;font-size:20px;color:var(--night)}.brand small{display:block;font-weight:400;color:var(--mut);font-size:12px}
+.badge{display:inline-block;padding:4px 12px;border-radius:999px;font-size:13px;font-weight:600}.pending{background:#FFF4D6;color:#8A5A00}.signed{background:#E6F4EA;color:var(--ok)}
+pre.terms{white-space:pre-wrap;font:inherit;font-size:15px;margin:0;color:#222}
+h2{font-size:18px;margin:0 0 10px}
+label{display:block;font-weight:600;margin:12px 0 6px}input[type=text]{width:100%;font:inherit;border:1.5px solid var(--line);border-radius:12px;padding:12px}
+.chk{display:flex;gap:10px;align-items:flex-start;margin:14px 0;font-size:15px}.chk input{width:20px;height:20px;margin-top:4px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 22px;border-radius:12px;font-weight:600;border:0;cursor:pointer;font:inherit;font-weight:600}.btn-dark{background:var(--night);color:#fff}.btn-ghost{background:#fff;border:1.5px solid var(--line);color:var(--night)}.btn-wa{background:var(--wa);color:#fff}.btn-block{width:100%}.btn:disabled{opacity:.5}
+.stamp{border:2px solid var(--ok);color:var(--ok);border-radius:14px;padding:14px 18px;display:inline-block;transform:rotate(-2deg);font-weight:700;background:#F3FAF5}
+.meta{font-size:13px;color:var(--mut);margin-top:10px}.hint{font-size:13px;color:var(--mut)}
+@media print{.noprint{display:none}body{background:#fff}.card{border:0}}
+</style>
+</head>
+<body><div class="wrap">
+<div class="card">
+  <div class="head"><div class="brand">{{ sender }}<small>{% if cr %}س.ت {{ cr }} · {% endif %}{% if vat_number %}الرقم الضريبي {{ vat_number }}{% endif %}</small></div>
+    <div style="text-align:left"><div class="hint">اتفاقية رقم</div><b style="font-family:monospace">AG-{{ '%05d'|format(a.id) }}</b> · v{{ a.terms_version }}<br>{% if a.accepted_at %}<span class="badge signed">موقّعة</span>{% else %}<span class="badge pending">بانتظار التوقيع</span>{% endif %}</div></div>
+  <pre class="terms">{{ a.terms_snapshot }}</pre>
+</div>
+
+{% if a.accepted_at %}
+<div class="card"><div class="stamp">✍️ تم القبول إلكترونيًا</div>
+  <div class="meta">الاسم: <b>{{ a.accepted_name }}</b> · التاريخ: <b>{{ a.accepted_at.strftime('%Y-%m-%d %H:%M') }} UTC</b> · المرجع: AG-{{ '%05d'|format(a.id) }}</div>
+  <p class="hint">يُحتفظ بسجل القبول (عنوان الاتصال ومتصفح الجهاز) لدى مقدّم الخدمة. يمكنكم طباعة هذه الصفحة أو حفظها PDF.</p>
+  <div class="noprint" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-ghost" onclick="print()">طباعة / حفظ PDF</button>{% if sender_phone %}<a class="btn btn-wa" href="https://wa.me/{{ sender_phone }}?text={{ ('وقّعت اتفاقية ' ~ client.company)|urlencode }}">إبلاغ عبر واتساب</a>{% endif %}</div></div>
+{% else %}
+<div class="card noprint" id="sign"><h2>القبول الإلكتروني</h2>
+  <p class="hint">بإدخال اسمكم والضغط على «أوافق» تُعد الاتفاقية موقّعة وملزمة للطرفين وفق نظام التعاملات الإلكترونية السعودي.</p>
+  <label>الاسم الكامل لصاحب الصلاحية</label><input type="text" id="nm" placeholder="مثال: فهد بن محمد العتيبي" autocomplete="name">
+  <div class="chk"><input type="checkbox" id="ag"><span>قرأت الاتفاقية أعلاه وأوافق على جميع بنودها نيابةً عن <b>{{ client.company }}</b>.</span></div>
+  <button class="btn btn-dark btn-block" id="ok" onclick="accept()">أوافق وأوقّع</button>
+  <div id="err" class="hint" style="color:#B3261E;margin-top:8px"></div></div>
+{% endif %}
+<p class="hint" style="text-align:center">{{ sender }} · هذه الصفحة خاصة ولا تُفهرس</p>
+</div>
+<script>
+function accept(){var n=document.getElementById('nm').value.trim(),a=document.getElementById('ag').checked,b=document.getElementById('ok'),e=document.getElementById('err');e.textContent='';
+  if(n.length<2){e.textContent='اكتبوا الاسم الكامل';return}if(!a){e.textContent='يرجى تأكيد الموافقة';return}b.disabled=true;
+  fetch('/api/public/agreement/'+{{ a.token|tojson }}+'/accept',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n,agree:true})}).then(function(r){if(!r.ok)throw 0;location.href=location.pathname+'?state=signed';}).catch(function(){b.disabled=false;e.textContent='تعذّر الإرسال، حاولوا مرة أخرى'});}
+</script>
+</body></html>

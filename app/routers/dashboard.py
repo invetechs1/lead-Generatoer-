@@ -46,7 +46,7 @@ def dashboard(db: Session = Depends(get_db), _: User = Depends(current_user)):
     }
 
 
-DEFAULT_SETTINGS = {"daily_send_cap": str(settings.DAILY_SEND_CAP), "sender_name": settings.SENDER_NAME, "sender_phone": "", "demo_url": settings.DEMO_URL, "default_price": str(settings.DEFAULT_PRICE_SAR), "bank_name": "", "iban": "", "account_name": "", "vat_number": "", "cr_number": ""}
+DEFAULT_SETTINGS = {"daily_send_cap": str(settings.DAILY_SEND_CAP), "sender_name": settings.SENDER_NAME, "sender_phone": "", "demo_url": settings.DEMO_URL, "default_price": str(settings.DEFAULT_PRICE_SAR), "bank_name": "", "iban": "", "account_name": "", "vat_number": "", "cr_number": "", "terms_text": "", "terms_version": "1.0"}
 
 
 @router.get("/settings")

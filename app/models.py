@@ -139,6 +139,24 @@ class Client(Base):
     lead = relationship("Lead", back_populates="client")
     invoices = relationship("Invoice", back_populates="client", cascade="all, delete-orphan")
     updates = relationship("UpdateRequest", back_populates="client", cascade="all, delete-orphan")
+    agreement = relationship("Agreement", back_populates="client", uselist=False, cascade="all, delete-orphan")
+
+
+class Agreement(Base):
+    """Subscription service agreement with electronic acceptance evidence (name, time, IP, user agent, terms snapshot)."""
+    __tablename__ = "agreements"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    client_id: Mapped[int] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"), unique=True, index=True)
+    token: Mapped[str] = mapped_column(String(48), unique=True, index=True)
+    terms_version: Mapped[str] = mapped_column(String(20), default="1.0")
+    terms_snapshot: Mapped[str] = mapped_column(Text, default="")  # the exact text the client accepted
+    accepted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    accepted_name: Mapped[str] = mapped_column(String(120), default="")
+    accepted_ip: Mapped[str] = mapped_column(String(64), default="")
+    accepted_ua: Mapped[str] = mapped_column(String(300), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+
+    client = relationship("Client", back_populates="agreement")
 
 
 class UpdateRequest(Base):

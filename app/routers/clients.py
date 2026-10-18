@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session
 
 from ..auth import current_user, admin_only
 from ..database import get_db
-from ..models import Client, Invoice, Lead, User, Activity
+from ..models import Client, Invoice, Lead, User, Activity, Agreement
+from ..services import terms
 from ..schemas import ClientIn, ClientUpdate, ClientOut, InvoiceOut
 
 router = APIRouter(prefix="/api/clients", tags=["clients"])
@@ -27,9 +28,16 @@ def _issue(db: Session, c: Client, period: str) -> Invoice:
     return inv
 
 
+def _with_agreement(c: Client) -> ClientOut:
+    out = ClientOut.model_validate(c)
+    if c.agreement:
+        out.agreement_token, out.agreement_accepted_at = c.agreement.token, c.agreement.accepted_at
+    return out
+
+
 @router.get("", response_model=list[ClientOut])
 def list_clients(db: Session = Depends(get_db), _: User = Depends(current_user)):
-    return db.query(Client).order_by(Client.id.desc()).all()
+    return [_with_agreement(c) for c in db.query(Client).order_by(Client.id.desc()).all()]
 
 
 @router.post("", response_model=ClientOut, status_code=201)
@@ -43,9 +51,10 @@ def create(data: ClientIn, db: Session = Depends(get_db), user: User = Depends(c
         lead.status = "won"
         db.add(Activity(lead_id=lead.id, user_id=user.id, kind="status", content="converted to client"))
     c = Client(**data.model_dump(), update_token=secrets.token_urlsafe(18)); db.add(c); db.flush()
+    db.add(Agreement(client_id=c.id, token=secrets.token_urlsafe(18), terms_version=terms.version(db), terms_snapshot=terms.render(db, c)))
     _issue(db, c, c.start_date.strftime("%Y-%m"))
     db.commit(); db.refresh(c)
-    return c
+    return _with_agreement(c)
 
 
 @router.patch("/{cid}", response_model=ClientOut)
@@ -56,7 +65,7 @@ def update(cid: int, data: ClientUpdate, db: Session = Depends(get_db), _: User 
     for k, v in data.model_dump(exclude_unset=True).items():
         setattr(c, k, v)
     db.commit(); db.refresh(c)
-    return c
+    return _with_agreement(c)
 
 
 @router.post("/run-billing", response_model=list[InvoiceOut])

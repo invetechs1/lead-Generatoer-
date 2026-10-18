@@ -262,14 +262,12 @@ docker compose logs --tail=50 api
 ```
 New tables **and new columns** are created automatically on startup (`database.ensure_columns` adds missing columns with their defaults; it never drops or changes existing ones). Watch the first lines of `docker compose logs api` after an update: `schema: added columns ...`.
 
-**Backups** — `./backups/bassir-YYYY-MM-DD.sql.gz` daily; copy them off-server (rclone/S3/cron scp). Uploaded photos live in the `uploads` Docker volume — include it in off-server backups:
-```bash
-docker run --rm -v bassir-leads_uploads:/u -v $PWD/backups:/b alpine tar czf /b/uploads-$(date +%F).tgz -C /u .
-```
+**Backups** — the `backup` container writes `./backups/bassir-YYYY-MM-DD.sql.gz` (database) **and** `./backups/uploads-YYYY-MM-DD.tgz` (photos, client files) daily, 30-day retention. Copy the folder off-server (rclone/S3/cron scp).
 
 **Restore**
 ```bash
 gunzip -c backups/bassir-2026-09-17.sql.gz | docker compose exec -T db psql -U bassir bassir
+docker run --rm -v bassir-leads_uploads:/u -v $PWD/backups:/b alpine tar xzf /b/uploads-2026-09-17.tgz -C /u
 ```
 
 **Logs / health**
